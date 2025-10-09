@@ -1,0 +1,213 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id             String        @id @default(cuid())
+  email          String        @unique
+  hashedPassword String?
+  name           String?
+  avatarUrl      String?
+  createdAt      DateTime      @default(now())
+  updatedAt      DateTime      @updatedAt
+  companies      UserCompany[]
+  sessions       Session[]
+  accounts       Account[]
+  auditLogs      AuditLog[]
+}
+
+model Company {
+  id               String        @id @default(cuid())
+  name             String
+  rfc              String?
+  country          String        @default("MX")
+  timezone         String        @default("America/Mexico_City")
+  facturaloApiKey  String?
+  facturaloSecret  String?
+  stripeCustomerId String?
+  createdAt        DateTime      @default(now())
+  updatedAt        DateTime      @updatedAt
+  users            UserCompany[]
+  subscriptions    Subscription?
+  invoices         Invoice[]
+  expenses         Expense[]
+  payrolls         Payroll[]
+  auditLogs        AuditLog[]
+}
+
+model Role {
+  id          String   @id @default(cuid())
+  name        String   @unique
+  description String?
+  permissions String   @default("{}")
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  users       UserCompany[]
+}
+
+model UserCompany {
+  id        String   @id @default(cuid())
+  userId    String
+  companyId String
+  roleId    String
+  isDefault Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  user    User    @relation(fields: [userId], references: [id])
+  company Company @relation(fields: [companyId], references: [id])
+  role    Role    @relation(fields: [roleId], references: [id])
+
+  @@unique([userId, companyId])
+}
+
+model Subscription {
+  id                 String   @id @default(cuid())
+  companyId          String   @unique
+  plan               String
+  status             String
+  seats              Int      @default(1)
+  stripeSubscription String?
+  stripePriceId      String?
+  stripeCustomerId   String?
+  trialEndsAt        DateTime?
+  cancelAtPeriodEnd  Boolean  @default(false)
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+
+  company Company @relation(fields: [companyId], references: [id])
+  payments Payment[]
+}
+
+model Payment {
+  id                    String   @id @default(cuid())
+  subscriptionId        String
+  amount                Decimal
+  currency              String   @default("MXN")
+  status                String
+  stripeInvoiceId       String?
+  stripeChargeId        String?
+  stripePaymentIntentId String?
+  paidAt                DateTime?
+  createdAt             DateTime @default(now())
+
+  subscription Subscription @relation(fields: [subscriptionId], references: [id])
+}
+
+model Invoice {
+  id            String   @id @default(cuid())
+  companyId     String
+  customerName  String
+  total         Decimal
+  status        String   @default("draft")
+  cfdiUuid      String?
+  issueDate     DateTime?
+  dueDate       DateTime?
+  xmlUrl        String?
+  pdfUrl        String?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  company Company @relation(fields: [companyId], references: [id])
+}
+
+model Expense {
+  id         String   @id @default(cuid())
+  companyId  String
+  vendor     String
+  amount     Decimal
+  category   String
+  status     String   @default("pending")
+  invoiceUrl String?
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  company Company @relation(fields: [companyId], references: [id])
+}
+
+model Payroll {
+  id          String   @id @default(cuid())
+  companyId   String
+  periodStart DateTime
+  periodEnd   DateTime
+  status      String   @default("draft")
+  totalNet    Decimal
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  company Company       @relation(fields: [companyId], references: [id])
+  loans   PayrollLoan[]
+}
+
+model PayrollLoan {
+  id         String   @id @default(cuid())
+  payrollId  String
+  employeeId String
+  amount     Decimal
+  balance    Decimal
+  status     String   @default("active")
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  payroll Payroll @relation(fields: [payrollId], references: [id])
+}
+
+model Account {
+  id                String  @id @default(cuid())
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String?
+  access_token      String?
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String?
+  session_state     String?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model AuditLog {
+  id        String   @id @default(cuid())
+  userId    String?
+  companyId String?
+  action    String
+  entity    String
+  metadata  String?
+  ip        String?
+  userAgent String?
+  createdAt DateTime @default(now())
+
+  user    User?    @relation(fields: [userId], references: [id])
+  company Company? @relation(fields: [companyId], references: [id])
+}
+
+model AuthOtp {
+  id        String   @id @default(cuid())
+  email     String
+  code      String
+  expiresAt DateTime
+  attempts  Int      @default(0)
+  createdAt DateTime @default(now())
+
+  @@index([email])
+  @@index([expiresAt])
+}
+
