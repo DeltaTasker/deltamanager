@@ -127,6 +127,7 @@ export default function AccessPage() {
       startTransition(() => {
         void (async () => {
           try {
+            // Validar OTP primero y obtener el userId
             const response = await fetch("/api/auth/verify-otp", {
               method: "POST",
               headers: { "Content-Type": "application/json" },
@@ -138,9 +139,12 @@ export default function AccessPage() {
               throw new Error(data.error ?? "Código inválido");
             }
 
+            const { userId } = (await response.json()) as { userId: string };
+
+            // Ahora iniciar sesión con NextAuth usando el userId validado
             const signInResponse = await signIn("otp", {
               email,
-              code: parsedOtp.data,
+              userId, // Pasar el userId en lugar del código
               redirect: false,
             });
 
