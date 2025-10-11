@@ -277,7 +277,7 @@ export default function AccessPage() {
 
       <div className="flex items-center justify-between text-sm text-muted-foreground">
         {secondsLeft > 0 ? (
-          <span>
+          <span suppressHydrationWarning>
             Puedes reenviar en <span className="font-semibold text-primary">{secondsLeft}s</span>
           </span>
         ) : (

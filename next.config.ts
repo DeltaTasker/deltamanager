@@ -11,18 +11,7 @@ const nextConfig: NextConfig = {
       },
     ],
   },
-  experimental: {
-    serverComponentsExternalPackages: ['nodemailer', '@prisma/client', 'bcryptjs'],
-  },
-  // Force Node.js runtime for API routes
-  async rewrites() {
-    return [
-      {
-        source: '/api/auth/:path*',
-        destination: '/api/auth/:path*',
-      },
-    ];
-  },
+  serverExternalPackages: ['nodemailer', '@prisma/client', 'bcryptjs'],
 };
 
 export default nextConfig;

@@ -1,5 +1,3 @@
-"use client";
-
 import Link from "next/link";
 import { Building2, CreditCard, FileText, LineChart, Settings, ShieldCheck, TrendingUp, Minus } from "lucide-react";
 
@@ -33,18 +31,18 @@ export async function DashboardSidebar({ userId }: DashboardSidebarProps) {
     <aside className="flex h-full w-72 flex-col border-r border-white/10 bg-black/20 backdrop-blur-md">
       <div className="flex flex-col gap-4 border-b border-white/10 p-6">
         <div className="flex items-center gap-3">
-          <div className="h-10 w-10 rounded-xl bg-gradient-to-r from-blue-500 to-purple-600 flex items-center justify-center">
+          <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-r from-blue-500 to-purple-600">
             <ShieldCheck className="size-6 text-white" />
           </div>
           <div>
-            <span className="text-xs font-medium text-gray-400 uppercase tracking-wide">Sistema Contable</span>
+            <span className="text-xs font-medium uppercase tracking-wide text-gray-400">Sistema Contable</span>
             <p className="text-lg font-bold text-white">DeltaManager</p>
           </div>
         </div>
         {companies.length > 0 ? (
           <CompanySwitcher companies={companies} activeCompanyId={companies.find((c) => c.isDefault)?.id} />
         ) : (
-          <div className="rounded-lg bg-white/5 border border-white/10 p-3">
+          <div className="rounded-lg border border-white/10 bg-white/5 p-3">
             <p className="text-sm text-gray-400">No tienes empresas asignadas.</p>
           </div>
         )}
