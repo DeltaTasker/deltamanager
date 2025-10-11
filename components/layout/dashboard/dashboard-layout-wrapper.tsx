@@ -23,7 +23,7 @@ function DashboardLayoutContent({ userId, companies, children }: DashboardLayout
   const { isCollapsed } = useSidebar();
 
   return (
-    <div className="min-h-screen w-full bg-gradient-to-br from-slate-950 via-slate-900 to-slate-800">
+    <>
       <DashboardSidebar companies={companies} />
       <div className={cn(
         "flex min-h-screen flex-col transition-all duration-300",
@@ -36,16 +36,18 @@ function DashboardLayoutContent({ userId, companies, children }: DashboardLayout
           </div>
         </main>
       </div>
-    </div>
+    </>
   );
 }
 
 export function DashboardLayoutWrapper({ userId, companies, children }: DashboardLayoutContentProps) {
   return (
     <SidebarProvider>
-      <DashboardLayoutContent userId={userId} companies={companies}>
-        {children}
-      </DashboardLayoutContent>
+      <div className="min-h-screen w-full bg-gradient-to-br from-slate-950 via-slate-900 to-slate-800">
+        <DashboardLayoutContent userId={userId} companies={companies}>
+          {children}
+        </DashboardLayoutContent>
+      </div>
     </SidebarProvider>
   );
 }
