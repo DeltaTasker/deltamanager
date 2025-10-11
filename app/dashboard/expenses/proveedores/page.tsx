@@ -66,36 +66,36 @@ export default function ProvidersPage() {
     resetForm();
   };
 
-  const handleEdit = (service: Service) => {
-    setEditingService(service);
+  const handleEdit = (provider: Service) => {
+    setEditingProvider(provider);
     setFormData({
-      name: service.name,
-      provider: service.provider,
-      category: service.category,
-      monthlyCost: service.monthlyCost.toString(),
-      renewalDate: service.renewalDate,
-      status: service.status
+      name: provider.name,
+      provider: provider.provider,
+      category: provider.category,
+      monthlyCost: provider.monthlyCost.toString(),
+      renewalDate: provider.renewalDate,
+      status: provider.status
     });
   };
 
   const handleUpdate = () => {
-    if (!editingService) return;
-    setServices(prev => prev.map(s => s.id === editingService.id ? {
-      ...editingService,
+    if (!editingProvider) return;
+    setProviders(prev => prev.map(p => p.id === editingProvider.id ? {
+      ...editingProvider,
       name: formData.name,
       provider: formData.provider,
       category: formData.category,
       monthlyCost: parseFloat(formData.monthlyCost),
       renewalDate: formData.renewalDate,
       status: formData.status as "active" | "cancelled"
-    } : s));
-    setEditingService(null);
+    } : p));
+    setEditingProvider(null);
     resetForm();
   };
 
   const handleDelete = (id: string) => {
-    if (confirm("¿Estás seguro de eliminar este servicio?")) {
-      setServices(prev => prev.filter(s => s.id !== id));
+    if (confirm("¿Estás seguro de eliminar este proveedor?")) {
+      setProviders(prev => prev.filter(p => p.id !== id));
     }
   };
 
@@ -107,7 +107,7 @@ export default function ProvidersPage() {
   const formatCurrency = (amount: number) => new Intl.NumberFormat('es-MX', { style: 'currency', currency: 'MXN' }).format(amount);
   const formatDate = (dateString: string) => new Date(dateString).toLocaleDateString('es-MX');
 
-  const totalMonthlyCost = filteredServices.filter(s => s.status === 'active').reduce((sum, s) => sum + s.monthlyCost, 0);
+  const totalMonthlyCost = filteredProviders.filter(s => s.status === 'active').reduce((sum, s) => sum + s.monthlyCost, 0);
 
   return (
     <div className="space-y-6">
@@ -179,8 +179,8 @@ export default function ProvidersPage() {
             <Zap className="h-5 w-5 text-blue-500" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-white">{filteredServices.filter(s => s.status === 'active').length}</div>
-            <p className="text-xs text-gray-400">suscripciones activas</p>
+            <div className="text-2xl font-bold text-white">{filteredProviders.filter(s => s.status === 'active').length}</div>
+            <p className="text-xs text-gray-400">proveedores activos</p>
           </CardContent>
         </Card>
         <Card className="border border-white/10 bg-white/5 backdrop-blur-sm">
@@ -257,18 +257,18 @@ export default function ProvidersPage() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {filteredServices.map((service) => (
-                <TableRow key={service.id} className="border-gray-700">
-                  <TableCell className="text-white">{service.name}</TableCell>
-                  <TableCell className="text-gray-300">{service.provider}</TableCell>
-                  <TableCell className="text-gray-300">{service.category}</TableCell>
-                  <TableCell className="text-white font-medium">{formatCurrency(service.monthlyCost)}</TableCell>
-                  <TableCell className="text-gray-300">{formatDate(service.renewalDate)}</TableCell>
-                  <TableCell>{getStatusBadge(service.status)}</TableCell>
+              {filteredProviders.map((provider) => (
+                <TableRow key={provider.id} className="border-gray-700">
+                  <TableCell className="text-white">{provider.name}</TableCell>
+                  <TableCell className="text-gray-300">{provider.provider}</TableCell>
+                  <TableCell className="text-gray-300">{provider.category}</TableCell>
+                  <TableCell className="text-white font-medium">{formatCurrency(provider.monthlyCost)}</TableCell>
+                  <TableCell className="text-gray-300">{formatDate(provider.renewalDate)}</TableCell>
+                  <TableCell>{getStatusBadge(provider.status)}</TableCell>
                   <TableCell>
                     <div className="flex items-center gap-2">
-                      <Button variant="ghost" size="sm" onClick={() => handleEdit(service)} className="text-blue-400 hover:bg-blue-500/10 hover:text-blue-300"><Edit className="h-4 w-4" /></Button>
-                      <Button variant="ghost" size="sm" onClick={() => handleDelete(service.id)} className="text-red-400 hover:bg-red-500/10 hover:text-red-300"><Trash2 className="h-4 w-4" /></Button>
+                      <Button variant="ghost" size="sm" onClick={() => handleEdit(provider)} className="text-blue-400 hover:bg-blue-500/10 hover:text-blue-300"><Edit className="h-4 w-4" /></Button>
+                      <Button variant="ghost" size="sm" onClick={() => handleDelete(provider.id)} className="text-red-400 hover:bg-red-500/10 hover:text-red-300"><Trash2 className="h-4 w-4" /></Button>
                     </div>
                   </TableCell>
                 </TableRow>
@@ -279,7 +279,7 @@ export default function ProvidersPage() {
       </Card>
 
       {/* Edit Dialog */}
-      <Dialog open={!!editingService} onOpenChange={() => setEditingService(null)}>
+      <Dialog open={!!editingProvider} onOpenChange={() => setEditingProvider(null)}>
         <DialogContent className="sm:max-w-[600px] bg-gray-900 border-gray-700">
           <DialogHeader>
             <DialogTitle className="text-white">Editar Servicio</DialogTitle>

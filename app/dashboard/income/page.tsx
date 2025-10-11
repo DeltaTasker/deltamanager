@@ -1,7 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import { useSession } from "next-auth/react";
+import { useState } from "react";
 import { Plus, Search, Edit, Trash2, Download, Filter } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
@@ -105,7 +104,6 @@ const statuses = [
 ];
 
 export default function IncomePage() {
-  const { data: session } = useSession();
   const [transactions, setTransactions] = useState<IncomeTransaction[]>(mockIncomeData);
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedCategory, setSelectedCategory] = useState("all");

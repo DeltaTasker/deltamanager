@@ -2,6 +2,7 @@ import type { ReactNode } from "react";
 import { redirect } from "next/navigation";
 
 import { DashboardLayoutWrapper } from "@/components/layout/dashboard/dashboard-layout-wrapper";
+import { DashboardHeader } from "@/components/layout/dashboard/header";
 import { auth } from "@/modules/auth/server/auth";
 
 export default async function DashboardLayout({ children }: { children: ReactNode }) {
@@ -14,7 +15,10 @@ export default async function DashboardLayout({ children }: { children: ReactNod
   const companies = await getUserCompanies(session.user.id);
 
   return (
-    <DashboardLayoutWrapper userId={session.user.id} companies={companies}>
+    <DashboardLayoutWrapper 
+      companies={companies} 
+      headerSlot={<DashboardHeader userId={session.user.id} />}
+    >
       {children}
     </DashboardLayoutWrapper>
   );
