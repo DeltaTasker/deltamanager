@@ -39,6 +39,7 @@ type Employee = {
   email: string;
   position: string;
   salary: number;
+  salaryPeriod: "hourly" | "weekly" | "biweekly" | "monthly";
   hireDate: string;
   status: "active" | "inactive";
 };
@@ -50,6 +51,7 @@ const mockEmployees: Employee[] = [
     email: "juan.perez@empresa.com",
     position: "Contador Senior",
     salary: 25000,
+    salaryPeriod: "monthly",
     hireDate: "2023-01-15",
     status: "active"
   },
@@ -58,7 +60,8 @@ const mockEmployees: Employee[] = [
     name: "María López Hernández",
     email: "maria.lopez@empresa.com",
     position: "Auxiliar Contable",
-    salary: 15000,
+    salary: 5000,
+    salaryPeriod: "biweekly",
     hireDate: "2023-06-01",
     status: "active"
   },
@@ -68,18 +71,17 @@ const mockEmployees: Employee[] = [
     email: "carlos.rodriguez@empresa.com",
     position: "Gerente Financiero",
     salary: 35000,
+    salaryPeriod: "monthly",
     hireDate: "2022-08-10",
     status: "active"
   }
 ];
 
-const positions = [
-  "Contador Senior",
-  "Auxiliar Contable",
-  "Gerente Financiero",
-  "Analista Financiero",
-  "Asistente Administrativo",
-  "Otro"
+const salaryPeriods = [
+  { value: "hourly", label: "Por Hora" },
+  { value: "weekly", label: "Semanal" },
+  { value: "biweekly", label: "Quincenal" },
+  { value: "monthly", label: "Mensual" }
 ];
 
 const statuses = [
@@ -98,6 +100,7 @@ export default function EmployeesPage() {
     email: "",
     position: "",
     salary: "",
+    salaryPeriod: "monthly",
     hireDate: "",
     status: "active"
   });
@@ -116,6 +119,7 @@ export default function EmployeesPage() {
       email: "",
       position: "",
       salary: "",
+      salaryPeriod: "monthly",
       hireDate: "",
       status: "active"
     });
@@ -128,6 +132,7 @@ export default function EmployeesPage() {
       email: formData.email,
       position: formData.position,
       salary: parseFloat(formData.salary),
+      salaryPeriod: formData.salaryPeriod as "hourly" | "weekly" | "biweekly" | "monthly",
       hireDate: formData.hireDate,
       status: formData.status as "active" | "inactive"
     };
@@ -144,6 +149,7 @@ export default function EmployeesPage() {
       email: employee.email,
       position: employee.position,
       salary: employee.salary.toString(),
+      salaryPeriod: employee.salaryPeriod,
       hireDate: employee.hireDate,
       status: employee.status
     });
@@ -158,6 +164,7 @@ export default function EmployeesPage() {
       email: formData.email,
       position: formData.position,
       salary: parseFloat(formData.salary),
+      salaryPeriod: formData.salaryPeriod as "hourly" | "weekly" | "biweekly" | "monthly",
       hireDate: formData.hireDate,
       status: formData.status as "active" | "inactive"
     };
@@ -243,24 +250,19 @@ export default function EmployeesPage() {
                   />
                 </div>
               </div>
+              <div className="space-y-2">
+                <Label htmlFor="position" className="text-white">Puesto</Label>
+                <Input
+                  id="position"
+                  value={formData.position}
+                  onChange={(e) => setFormData(prev => ({ ...prev, position: e.target.value }))}
+                  placeholder="Ej: Contador, Gerente, Auxiliar..."
+                  className="bg-gray-800 border-gray-600 text-white"
+                />
+              </div>
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <Label htmlFor="position" className="text-white">Puesto</Label>
-                  <Select value={formData.position} onValueChange={(value) => setFormData(prev => ({ ...prev, position: value }))}>
-                    <SelectTrigger className="bg-gray-800 border-gray-600 text-white">
-                      <SelectValue placeholder="Seleccionar puesto" />
-                    </SelectTrigger>
-                    <SelectContent className="bg-gray-800 border-gray-600">
-                      {positions.map((position) => (
-                        <SelectItem key={position} value={position} className="text-white hover:bg-gray-700">
-                          {position}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="salary" className="text-white">Salario Mensual</Label>
+                  <Label htmlFor="salary" className="text-white">Salario</Label>
                   <Input
                     id="salary"
                     type="number"
@@ -270,6 +272,21 @@ export default function EmployeesPage() {
                     placeholder="0.00"
                     className="bg-gray-800 border-gray-600 text-white"
                   />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="salaryPeriod" className="text-white">Periodo de Pago</Label>
+                  <Select value={formData.salaryPeriod} onValueChange={(value) => setFormData(prev => ({ ...prev, salaryPeriod: value }))}>
+                    <SelectTrigger className="bg-gray-800 border-gray-600 text-white">
+                      <SelectValue placeholder="Periodo" />
+                    </SelectTrigger>
+                    <SelectContent className="bg-gray-800 border-gray-600">
+                      {salaryPeriods.map((period) => (
+                        <SelectItem key={period.value} value={period.value} className="text-white hover:bg-gray-700">
+                          {period.label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                 </div>
               </div>
               <div className="space-y-2">
@@ -472,24 +489,19 @@ export default function EmployeesPage() {
                 />
               </div>
             </div>
+            <div className="space-y-2">
+              <Label htmlFor="edit-position" className="text-white">Puesto</Label>
+              <Input
+                id="edit-position"
+                value={formData.position}
+                onChange={(e) => setFormData(prev => ({ ...prev, position: e.target.value }))}
+                placeholder="Ej: Contador, Gerente, Auxiliar..."
+                className="bg-gray-800 border-gray-600 text-white"
+              />
+            </div>
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label htmlFor="edit-position" className="text-white">Puesto</Label>
-                <Select value={formData.position} onValueChange={(value) => setFormData(prev => ({ ...prev, position: value }))}>
-                  <SelectTrigger className="bg-gray-800 border-gray-600 text-white">
-                    <SelectValue placeholder="Seleccionar puesto" />
-                  </SelectTrigger>
-                  <SelectContent className="bg-gray-800 border-gray-600">
-                    {positions.map((position) => (
-                      <SelectItem key={position} value={position} className="text-white hover:bg-gray-700">
-                        {position}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="edit-salary" className="text-white">Salario Mensual</Label>
+                <Label htmlFor="edit-salary" className="text-white">Salario</Label>
                 <Input
                   id="edit-salary"
                   type="number"
@@ -499,6 +511,21 @@ export default function EmployeesPage() {
                   placeholder="0.00"
                   className="bg-gray-800 border-gray-600 text-white"
                 />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="edit-salaryPeriod" className="text-white">Periodo de Pago</Label>
+                <Select value={formData.salaryPeriod} onValueChange={(value) => setFormData(prev => ({ ...prev, salaryPeriod: value }))}>
+                  <SelectTrigger className="bg-gray-800 border-gray-600 text-white">
+                    <SelectValue placeholder="Periodo" />
+                  </SelectTrigger>
+                  <SelectContent className="bg-gray-800 border-gray-600">
+                    {salaryPeriods.map((period) => (
+                      <SelectItem key={period.value} value={period.value} className="text-white hover:bg-gray-700">
+                        {period.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
             </div>
             <div className="grid grid-cols-2 gap-4">
