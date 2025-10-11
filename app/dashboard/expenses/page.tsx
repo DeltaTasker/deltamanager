@@ -38,9 +38,9 @@ type ExpenseTransaction = {
   description: string;
   amount: number;
   date: string;
-  category: string;
   supplier?: string;
-  invoiceNumber?: string;
+  invoiceFiles?: string[]; // PDF, XML, ZIP
+  paymentProof?: string; // Imagen o PDF del comprobante
   status: "pending" | "paid" | "cancelled";
 };
 
@@ -50,40 +50,29 @@ const mockExpenseData: ExpenseTransaction[] = [
     description: "Nómina Quincenal",
     amount: 45000,
     date: "2024-01-15",
-    category: "Nómina",
     supplier: "Empleados",
-    invoiceNumber: "NOM-2024-001",
-    status: "paid"
+    status: "paid",
+    paymentProof: "comprobante-nomina.pdf"
   },
   {
     id: "2",
     description: "Hosting AWS",
     amount: 1200,
     date: "2024-01-20",
-    category: "Servicios",
     supplier: "Amazon Web Services",
-    invoiceNumber: "AWS-2024-001",
-    status: "pending"
+    status: "pending",
+    invoiceFiles: ["factura-aws.pdf", "factura-aws.xml"]
   },
   {
     id: "3",
     description: "Material de Oficina",
     amount: 3500,
     date: "2024-01-25",
-    category: "Suministros",
     supplier: "Office Depot",
-    invoiceNumber: "OD-2024-003",
-    status: "paid"
+    status: "paid",
+    invoiceFiles: ["factura-office.pdf"],
+    paymentProof: "comprobante-office.jpg"
   }
-];
-
-const categories = [
-  "Nómina",
-  "Servicios",
-  "Suministros",
-  "Mantenimiento",
-  "Renta",
-  "Otros"
 ];
 
 const statuses = [
@@ -95,7 +84,6 @@ const statuses = [
 export default function ExpensesPage() {
   const [transactions, setTransactions] = useState<ExpenseTransaction[]>(mockExpenseData);
   const [searchTerm, setSearchTerm] = useState("");
-  const [selectedCategory, setSelectedCategory] = useState("all");
   const [selectedStatus, setSelectedStatus] = useState("all");
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
   const [editingTransaction, setEditingTransaction] = useState<ExpenseTransaction | null>(null);
@@ -103,21 +91,17 @@ export default function ExpensesPage() {
     description: "",
     amount: "",
     date: "",
-    category: "",
     supplier: "",
-    invoiceNumber: "",
     status: "pending"
   });
 
   const filteredTransactions = transactions.filter(transaction => {
     const matchesSearch = transaction.description.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         transaction.supplier?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         transaction.invoiceNumber?.toLowerCase().includes(searchTerm.toLowerCase());
+                         transaction.supplier?.toLowerCase().includes(searchTerm.toLowerCase());
 
-    const matchesCategory = selectedCategory === "all" || transaction.category === selectedCategory;
     const matchesStatus = selectedStatus === "all" || transaction.status === selectedStatus;
 
-    return matchesSearch && matchesCategory && matchesStatus;
+    return matchesSearch && matchesStatus;
   });
 
   const resetForm = () => {
@@ -125,9 +109,7 @@ export default function ExpensesPage() {
       description: "",
       amount: "",
       date: "",
-      category: "",
       supplier: "",
-      invoiceNumber: "",
       status: "pending"
     });
   };
@@ -138,9 +120,7 @@ export default function ExpensesPage() {
       description: formData.description,
       amount: parseFloat(formData.amount),
       date: formData.date,
-      category: formData.category,
       supplier: formData.supplier,
-      invoiceNumber: formData.invoiceNumber,
       status: formData.status as "pending" | "paid" | "cancelled"
     };
 
@@ -155,9 +135,7 @@ export default function ExpensesPage() {
       description: transaction.description,
       amount: transaction.amount.toString(),
       date: transaction.date,
-      category: transaction.category,
       supplier: transaction.supplier || "",
-      invoiceNumber: transaction.invoiceNumber || "",
       status: transaction.status
     });
   };
@@ -170,9 +148,7 @@ export default function ExpensesPage() {
       description: formData.description,
       amount: parseFloat(formData.amount),
       date: formData.date,
-      category: formData.category,
       supplier: formData.supplier,
-      invoiceNumber: formData.invoiceNumber,
       status: formData.status as "pending" | "paid" | "cancelled"
     };
 
@@ -274,23 +250,6 @@ export default function ExpensesPage() {
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="category" className="text-white">Categoría</Label>
-                  <Select value={formData.category} onValueChange={(value) => setFormData(prev => ({ ...prev, category: value }))}>
-                    <SelectTrigger className="bg-gray-800 border-gray-600 text-white">
-                      <SelectValue placeholder="Seleccionar categoría" />
-                    </SelectTrigger>
-                    <SelectContent className="bg-gray-800 border-gray-600">
-                      {categories.map((category) => (
-                        <SelectItem key={category} value={category} className="text-white hover:bg-gray-700">
-                          {category}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-              </div>
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
                   <Label htmlFor="supplier" className="text-white">Proveedor</Label>
                   <Input
                     id="supplier"
@@ -300,15 +259,11 @@ export default function ExpensesPage() {
                     className="bg-gray-800 border-gray-600 text-white"
                   />
                 </div>
-                <div className="space-y-2">
-                  <Label htmlFor="invoiceNumber" className="text-white">Número de Factura</Label>
-                  <Input
-                    id="invoiceNumber"
-                    value={formData.invoiceNumber}
-                    onChange={(e) => setFormData(prev => ({ ...prev, invoiceNumber: e.target.value }))}
-                    placeholder="FAC-2024-XXX"
-                    className="bg-gray-800 border-gray-600 text-white"
-                  />
+              </div>
+              <div className="space-y-2">
+                <Label className="text-white">Archivos (Próximamente)</Label>
+                <div className="rounded-lg border border-dashed border-gray-600 bg-gray-800/50 p-4 text-center">
+                  <p className="text-sm text-gray-400">Podrás adjuntar facturas (PDF, XML, ZIP) y comprobantes de pago en la siguiente versión</p>
                 </div>
               </div>
             </div>
@@ -393,19 +348,6 @@ export default function ExpensesPage() {
                 />
               </div>
             </div>
-            <Select value={selectedCategory} onValueChange={setSelectedCategory}>
-              <SelectTrigger className="w-full md:w-[200px] bg-gray-800 border-gray-600 text-white">
-                <SelectValue placeholder="Todas las categorías" />
-              </SelectTrigger>
-              <SelectContent className="bg-gray-800 border-gray-600">
-                <SelectItem value="all" className="text-white hover:bg-gray-700">Todas las categorías</SelectItem>
-                {categories.map((category) => (
-                  <SelectItem key={category} value={category} className="text-white hover:bg-gray-700">
-                    {category}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
             <Select value={selectedStatus} onValueChange={setSelectedStatus}>
               <SelectTrigger className="w-full md:w-[200px] bg-gray-800 border-gray-600 text-white">
                 <SelectValue placeholder="Todos los estados" />
@@ -442,7 +384,7 @@ export default function ExpensesPage() {
                 <TableHead className="text-gray-400">Proveedor</TableHead>
                 <TableHead className="text-gray-400">Monto</TableHead>
                 <TableHead className="text-gray-400">Fecha</TableHead>
-                <TableHead className="text-gray-400">Categoría</TableHead>
+                <TableHead className="text-gray-400">Archivos</TableHead>
                 <TableHead className="text-gray-400">Estado</TableHead>
                 <TableHead className="text-gray-400">Acciones</TableHead>
               </TableRow>
@@ -454,7 +396,15 @@ export default function ExpensesPage() {
                   <TableCell className="text-gray-300">{transaction.supplier || '-'}</TableCell>
                   <TableCell className="text-white font-medium">{formatCurrency(transaction.amount)}</TableCell>
                   <TableCell className="text-gray-300">{formatDate(transaction.date)}</TableCell>
-                  <TableCell className="text-gray-300">{transaction.category}</TableCell>
+                  <TableCell className="text-gray-300 text-xs">
+                    {transaction.invoiceFiles && transaction.invoiceFiles.length > 0 && (
+                      <span className="text-blue-400">📄 {transaction.invoiceFiles.length} factura(s)</span>
+                    )}
+                    {transaction.paymentProof && (
+                      <span className="ml-2 text-green-400">✓ Comprobante</span>
+                    )}
+                    {!transaction.invoiceFiles && !transaction.paymentProof && '-'}
+                  </TableCell>
                   <TableCell>{getStatusBadge(transaction.status)}</TableCell>
                   <TableCell>
                     <div className="flex items-center gap-2">
@@ -529,23 +479,6 @@ export default function ExpensesPage() {
                 />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="edit-category" className="text-white">Categoría</Label>
-                <Select value={formData.category} onValueChange={(value) => setFormData(prev => ({ ...prev, category: value }))}>
-                  <SelectTrigger className="bg-gray-800 border-gray-600 text-white">
-                    <SelectValue placeholder="Seleccionar categoría" />
-                  </SelectTrigger>
-                  <SelectContent className="bg-gray-800 border-gray-600">
-                    {categories.map((category) => (
-                      <SelectItem key={category} value={category} className="text-white hover:bg-gray-700">
-                        {category}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-            </div>
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
                 <Label htmlFor="edit-supplier" className="text-white">Proveedor</Label>
                 <Input
                   id="edit-supplier"
@@ -555,15 +488,11 @@ export default function ExpensesPage() {
                   className="bg-gray-800 border-gray-600 text-white"
                 />
               </div>
-              <div className="space-y-2">
-                <Label htmlFor="edit-invoiceNumber" className="text-white">Número de Factura</Label>
-                <Input
-                  id="edit-invoiceNumber"
-                  value={formData.invoiceNumber}
-                  onChange={(e) => setFormData(prev => ({ ...prev, invoiceNumber: e.target.value }))}
-                  placeholder="FAC-2024-XXX"
-                  className="bg-gray-800 border-gray-600 text-white"
-                />
+            </div>
+            <div className="space-y-2">
+              <Label className="text-white">Archivos (Próximamente)</Label>
+              <div className="rounded-lg border border-dashed border-gray-600 bg-gray-800/50 p-4 text-center">
+                <p className="text-sm text-gray-400">Podrás adjuntar facturas (PDF, XML, ZIP) y comprobantes de pago en la siguiente versión</p>
               </div>
             </div>
             <div className="space-y-2">
