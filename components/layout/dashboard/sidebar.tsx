@@ -26,6 +26,7 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
+import { useSidebar } from "./sidebar-provider";
 
 type UserCompanySummary = {
   id: string;
@@ -76,7 +77,7 @@ const links = [
 
 export function DashboardSidebar({ companies }: DashboardSidebarProps) {
   const pathname = usePathname();
-  const [isCollapsed, setIsCollapsed] = useState(false);
+  const { isCollapsed, setIsCollapsed } = useSidebar();
   const [expandedSections, setExpandedSections] = useState<Record<string, boolean>>({
     Ingresos: true,
     Egresos: true,
@@ -260,7 +261,7 @@ export function DashboardSidebar({ companies }: DashboardSidebarProps) {
 
           if (isCollapsed) {
             return (
-              <Tooltip key={item.href}>
+              <Tooltip key={`tooltip-${item.href}`}>
                 <TooltipTrigger asChild>
                   {linkElement}
                 </TooltipTrigger>
@@ -271,7 +272,7 @@ export function DashboardSidebar({ companies }: DashboardSidebarProps) {
             );
           }
 
-          return linkElement;
+          return <div key={`link-${item.href}`}>{linkElement}</div>;
         })}
       </nav>
 

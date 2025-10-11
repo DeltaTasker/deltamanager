@@ -195,7 +195,9 @@ export default function IncomePage() {
   };
 
   const handleDelete = (id: string) => {
-    setTransactions(prev => prev.filter(t => t.id !== id));
+    if (confirm("¿Estás seguro de eliminar este ingreso?")) {
+      setTransactions(prev => prev.filter(t => t.id !== id));
+    }
   };
 
   const getStatusBadge = (status: string) => {
