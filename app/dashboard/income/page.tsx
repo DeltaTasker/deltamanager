@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Plus, Search, Edit, Trash2, Download, Filter, Check, X, FileText, UserPlus, TagIcon } from "lucide-react";
+import { Plus, Search, Edit, Trash2, Download, Filter, Check, X, FileText, UserPlus, TagIcon, ChevronDown, ChevronRight, FolderOpen, Eye, FileCheck } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -57,8 +57,37 @@ type IncomeTransaction = {
   retencionISR: number;
   total: number;
   date: string;
+  
+  // Project fields
+  isProject: boolean;
+  projectName?: string;
+  totalProjectAmount?: number;
+  numberOfPayments?: number;
+  parentProjectId?: string;
+  paymentNumber?: number;
+  
+  // Invoice fields
   invoiceNumber?: string;
   isBilled: boolean;
+  invoiceType: "PPD" | "PUE" | null;
+  paymentMethod: string; // Efectivo, Transferencia, Cheque, etc.
+  paymentForm: string; // Código SAT: 01, 03, 04, etc.
+  paymentConditions?: string;
+  
+  // Invoice status
+  invoiceStatus: "pending" | "preview" | "stamped";
+  invoicePreviewUrl?: string;
+  invoiceXmlUrl?: string;
+  invoiceStampedPdfUrl?: string;
+  
+  // Payment complements (for PPD)
+  paymentComplements?: Array<{
+    id: string;
+    date: string;
+    amount: number;
+    xmlUrl: string;
+  }>;
+  
   status: "pending" | "received" | "cancelled";
 };
 
@@ -74,6 +103,7 @@ const mockConcepts: Concept[] = [
 ];
 
 const mockIncomeData: IncomeTransaction[] = [
+  // Cobro regular (no proyecto)
   {
     id: "1",
     clientId: "1",
@@ -89,7 +119,148 @@ const mockIncomeData: IncomeTransaction[] = [
     date: "2024-01-15",
     invoiceNumber: "FAC-2024-001",
     isBilled: true,
+    isProject: false,
+    invoiceType: "PUE",
+    paymentMethod: "Transferencia",
+    paymentForm: "03",
+    paymentConditions: "Pago inmediato",
+    invoiceStatus: "stamped",
+    invoiceStampedPdfUrl: "/invoices/FAC-2024-001.pdf",
+    invoiceXmlUrl: "/invoices/FAC-2024-001.xml",
     status: "received"
+  },
+  // Proyecto con 4 pagos parciales
+  {
+    id: "proj-1",
+    clientId: "2",
+    clientName: "Tech Solutions Inc.",
+    conceptId: "2",
+    conceptName: "Consultoría Financiera",
+    quantity: 1,
+    unitPrice: 12000,
+    subtotal: 12000,
+    iva: 1920,
+    retencionISR: 1280.4,
+    total: 12639.6,
+    date: "2024-01-20",
+    isProject: true,
+    projectName: "Implementación Sistema Contable",
+    totalProjectAmount: 12639.6,
+    numberOfPayments: 4,
+    invoiceType: "PPD",
+    paymentMethod: "Por Definir",
+    paymentForm: "99",
+    paymentConditions: "4 pagos mensuales",
+    invoiceStatus: "stamped",
+    invoiceNumber: "FAC-2024-002",
+    isBilled: true,
+    invoiceStampedPdfUrl: "/invoices/FAC-2024-002.pdf",
+    invoiceXmlUrl: "/invoices/FAC-2024-002.xml",
+    status: "pending"
+  },
+  // Pago parcial 1/4
+  {
+    id: "proj-1-p1",
+    clientId: "2",
+    clientName: "Tech Solutions Inc.",
+    conceptId: "2",
+    conceptName: "Consultoría Financiera",
+    quantity: 1,
+    unitPrice: 3000,
+    subtotal: 3000,
+    iva: 480,
+    retencionISR: 320.1,
+    total: 3159.9,
+    date: "2024-01-20",
+    parentProjectId: "proj-1",
+    paymentNumber: 1,
+    isProject: false,
+    invoiceType: "PPD",
+    paymentMethod: "Transferencia",
+    paymentForm: "03",
+    invoiceStatus: "pending",
+    isBilled: false,
+    paymentComplements: [
+      {
+        id: "comp-1",
+        date: "2024-01-25",
+        amount: 3159.9,
+        xmlUrl: "/complements/COMP-2024-002-001.xml"
+      }
+    ],
+    status: "received"
+  },
+  // Pago parcial 2/4
+  {
+    id: "proj-1-p2",
+    clientId: "2",
+    clientName: "Tech Solutions Inc.",
+    conceptId: "2",
+    conceptName: "Consultoría Financiera",
+    quantity: 1,
+    unitPrice: 3000,
+    subtotal: 3000,
+    iva: 480,
+    retencionISR: 320.1,
+    total: 3159.9,
+    date: "2024-02-20",
+    parentProjectId: "proj-1",
+    paymentNumber: 2,
+    isProject: false,
+    invoiceType: "PPD",
+    paymentMethod: "Por Definir",
+    paymentForm: "99",
+    invoiceStatus: "pending",
+    isBilled: false,
+    status: "pending"
+  },
+  // Pago parcial 3/4
+  {
+    id: "proj-1-p3",
+    clientId: "2",
+    clientName: "Tech Solutions Inc.",
+    conceptId: "2",
+    conceptName: "Consultoría Financiera",
+    quantity: 1,
+    unitPrice: 3000,
+    subtotal: 3000,
+    iva: 480,
+    retencionISR: 320.1,
+    total: 3159.9,
+    date: "2024-03-20",
+    parentProjectId: "proj-1",
+    paymentNumber: 3,
+    isProject: false,
+    invoiceType: "PPD",
+    paymentMethod: "Por Definir",
+    paymentForm: "99",
+    invoiceStatus: "pending",
+    isBilled: false,
+    status: "pending"
+  },
+  // Pago parcial 4/4
+  {
+    id: "proj-1-p4",
+    clientId: "2",
+    clientName: "Tech Solutions Inc.",
+    conceptId: "2",
+    conceptName: "Consultoría Financiera",
+    quantity: 1,
+    unitPrice: 3000,
+    subtotal: 3000,
+    iva: 480,
+    retencionISR: 320.1,
+    total: 3159.9,
+    date: "2024-04-20",
+    parentProjectId: "proj-1",
+    paymentNumber: 4,
+    isProject: false,
+    invoiceType: "PPD",
+    paymentMethod: "Por Definir",
+    paymentForm: "99",
+    invoiceStatus: "pending",
+    isBilled: false,
+    status: "pending"
   }
 ];
 
@@ -101,6 +272,7 @@ export default function IncomePage() {
   const [selectedStatus, setSelectedStatus] = useState("all");
   const [editingId, setEditingId] = useState<string | null>(null);
   const [showNewForm, setShowNewForm] = useState(false);
+  const [expandedProjects, setExpandedProjects] = useState<Set<string>>(new Set());
   
   const [formData, setFormData] = useState({
     clientId: "",
@@ -108,20 +280,54 @@ export default function IncomePage() {
     quantity: "1",
     unitPrice: "",
     date: new Date().toISOString().split('T')[0],
-    status: "pending" as "pending" | "received" | "cancelled"
+    status: "pending" as "pending" | "received" | "cancelled",
+    // Project fields
+    isProject: false,
+    projectName: "",
+    numberOfPayments: "1",
+    // Invoice fields
+    invoiceType: null as "PPD" | "PUE" | null,
+    paymentMethod: "Por Definir",
+    paymentForm: "99",
+    paymentConditions: ""
   });
 
   // Search/filter for clients in select
   const [clientSearch, setClientSearch] = useState("");
   const [conceptSearch, setConceptSearch] = useState("");
 
+  // Filter top-level transactions (exclude partial payments, they'll be shown inside projects)
   const filteredTransactions = transactions.filter(transaction => {
+    // Exclude partial payments from top level
+    if (transaction.parentProjectId) return false;
+    
     const matchesSearch = transaction.clientName.toLowerCase().includes(searchTerm.toLowerCase()) ||
                          transaction.conceptName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         transaction.invoiceNumber?.toLowerCase().includes(searchTerm.toLowerCase());
+                         transaction.invoiceNumber?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                         (transaction.projectName && transaction.projectName.toLowerCase().includes(searchTerm.toLowerCase()));
     const matchesStatus = selectedStatus === "all" || transaction.status === selectedStatus;
     return matchesSearch && matchesStatus;
   });
+  
+  // Function to get partial payments for a project
+  const getProjectPayments = (projectId: string) => {
+    return transactions
+      .filter(t => t.parentProjectId === projectId)
+      .sort((a, b) => (a.paymentNumber || 0) - (b.paymentNumber || 0));
+  };
+  
+  // Toggle project expansion
+  const toggleProject = (projectId: string) => {
+    setExpandedProjects(prev => {
+      const newSet = new Set(prev);
+      if (newSet.has(projectId)) {
+        newSet.delete(projectId);
+      } else {
+        newSet.add(projectId);
+      }
+      return newSet;
+    });
+  };
 
   const filteredClients = clients.filter(c => 
     c.name.toLowerCase().includes(clientSearch.toLowerCase()) ||
