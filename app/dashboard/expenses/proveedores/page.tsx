@@ -35,7 +35,7 @@ type Provider = {
   state: string;
   category: string;
   status: "active" | "inactive";
-  paymentTerms?: string; // Términos de pago (ej: 30 días)
+  paymentTerms?: string;
   contactPerson?: string;
   notes?: string;
 };
@@ -291,7 +291,7 @@ export default function ProvidersPage() {
               />
             </div>
             <Select value={selectedCategory} onValueChange={setSelectedCategory}>
-              <SelectTrigger className="w-[180px] bg-slate-900 border-white/10 text-white">
+              <SelectTrigger className="w-[200px] bg-slate-900 border-white/10 text-white">
                 <SelectValue placeholder="Categoría" />
               </SelectTrigger>
               <SelectContent className="bg-gray-800 border-gray-600">
@@ -353,15 +353,6 @@ export default function ProvidersPage() {
                     </TableCell>
                     <TableCell className="p-2">
                       <Input
-                        placeholder="RFC *"
-                        value={formData.rfc}
-                        onChange={(e) => setFormData(prev => ({ ...prev, rfc: e.target.value.toUpperCase() }))}
-                        className="bg-gray-800 border-indigo-500/30 text-white text-sm h-8 uppercase"
-                        maxLength={13}
-                      />
-                    </TableCell>
-                    <TableCell className="p-2">
-                      <Input
                         type="email"
                         placeholder="email@empresa.com *"
                         value={formData.email}
@@ -390,26 +381,28 @@ export default function ProvidersPage() {
                       </Select>
                     </TableCell>
                     <TableCell className="p-2">
-                      <Select value={formData.taxRegime} onValueChange={(value) => setFormData(prev => ({ ...prev, taxRegime: value }))}>
-                        <SelectTrigger className="bg-gray-800 border-indigo-500/30 text-white text-sm h-8">
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent className="bg-gray-800 border-gray-600 max-h-[300px]">
-                          {taxRegimes.map((regime) => (
-                            <SelectItem key={regime.value} value={regime.value} className="text-white text-sm">{regime.label}</SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
+                      <Input
+                        placeholder="Persona de contacto"
+                        value={formData.contactPerson}
+                        onChange={(e) => setFormData(prev => ({ ...prev, contactPerson: e.target.value }))}
+                        className="bg-gray-800 border-indigo-500/30 text-white text-sm h-8"
+                      />
                     </TableCell>
                     <TableCell className="p-2">
-                      <div className="space-y-1">
-                        <Input
-                          placeholder="Ciudad"
-                          value={formData.city}
-                          onChange={(e) => setFormData(prev => ({ ...prev, city: e.target.value }))}
-                          className="bg-gray-800 border-indigo-500/30 text-white text-sm h-8"
-                        />
-                      </div>
+                      <Input
+                        placeholder="Ciudad"
+                        value={formData.city}
+                        onChange={(e) => setFormData(prev => ({ ...prev, city: e.target.value }))}
+                        className="bg-gray-800 border-indigo-500/30 text-white text-sm h-8"
+                      />
+                    </TableCell>
+                    <TableCell className="p-2">
+                      <Input
+                        placeholder="ej: 30 días"
+                        value={formData.paymentTerms}
+                        onChange={(e) => setFormData(prev => ({ ...prev, paymentTerms: e.target.value }))}
+                        className="bg-gray-800 border-indigo-500/30 text-white text-sm h-8"
+                      />
                     </TableCell>
                     <TableCell className="p-2">
                       <Select value={formData.status} onValueChange={(value: any) => setFormData(prev => ({ ...prev, status: value }))}>
@@ -460,18 +453,6 @@ export default function ProvidersPage() {
                       <TableCell className="p-3">
                         {isEditing ? (
                           <Input
-                            value={formData.rfc}
-                            onChange={(e) => setFormData(prev => ({ ...prev, rfc: e.target.value.toUpperCase() }))}
-                            className="bg-gray-800 border-blue-500/30 text-white text-sm h-8 uppercase"
-                            maxLength={13}
-                          />
-                        ) : (
-                          <span className="text-gray-300 text-sm font-mono">{provider.rfc}</span>
-                        )}
-                      </TableCell>
-                      <TableCell className="p-3">
-                        {isEditing ? (
-                          <Input
                             type="email"
                             value={formData.email}
                             onChange={(e) => setFormData(prev => ({ ...prev, email: e.target.value }))}
@@ -510,32 +491,47 @@ export default function ProvidersPage() {
                       </TableCell>
                       <TableCell className="p-3">
                         {isEditing ? (
-                          <Select value={formData.taxRegime} onValueChange={(value) => setFormData(prev => ({ ...prev, taxRegime: value }))}>
-                            <SelectTrigger className="bg-gray-800 border-blue-500/30 text-white text-sm h-8">
-                              <SelectValue />
-                            </SelectTrigger>
-                            <SelectContent className="bg-gray-800 border-gray-600 max-h-[300px]">
-                              {taxRegimes.map((regime) => (
-                                <SelectItem key={regime.value} value={regime.value} className="text-white text-sm">{regime.label}</SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
+                          <Input
+                            value={formData.contactPerson}
+                            onChange={(e) => setFormData(prev => ({ ...prev, contactPerson: e.target.value }))}
+                            className="bg-gray-800 border-blue-500/30 text-white text-sm h-8"
+                          />
                         ) : (
-                          <span className="text-gray-300 text-sm">{provider.taxRegime}</span>
+                          <span className="text-gray-300 text-sm">{provider.contactPerson || "-"}</span>
                         )}
                       </TableCell>
                       <TableCell className="p-3">
                         {isEditing ? (
-                          <Input
-                            value={formData.city}
-                            onChange={(e) => setFormData(prev => ({ ...prev, city: e.target.value }))}
-                            className="bg-gray-800 border-blue-500/30 text-white text-sm h-8"
-                          />
+                          <div className="space-y-1">
+                            <Input
+                              value={formData.city}
+                              onChange={(e) => setFormData(prev => ({ ...prev, city: e.target.value }))}
+                              className="bg-gray-800 border-blue-500/30 text-white text-sm h-8"
+                              placeholder="Ciudad"
+                            />
+                            <Input
+                              value={formData.state}
+                              onChange={(e) => setFormData(prev => ({ ...prev, state: e.target.value }))}
+                              className="bg-gray-800 border-blue-500/30 text-white text-sm h-8"
+                              placeholder="Estado"
+                            />
+                          </div>
                         ) : (
                           <div className="text-gray-300 text-sm">
                             <div>{provider.city}</div>
                             <div className="text-gray-500 text-xs">{provider.state}</div>
                           </div>
+                        )}
+                      </TableCell>
+                      <TableCell className="p-3">
+                        {isEditing ? (
+                          <Input
+                            value={formData.paymentTerms}
+                            onChange={(e) => setFormData(prev => ({ ...prev, paymentTerms: e.target.value }))}
+                            className="bg-gray-800 border-blue-500/30 text-white text-sm h-8"
+                          />
+                        ) : (
+                          <span className="text-gray-300 text-sm">{provider.paymentTerms || "-"}</span>
                         )}
                       </TableCell>
                       <TableCell className="p-3">{getStatusBadge(provider.status)}</TableCell>
