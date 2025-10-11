@@ -45,47 +45,78 @@ type Employee = {
 const mockEmployees: Employee[] = [
   {
     id: "1",
-    name: "Juan Pérez García",
-    email: "juan.perez@empresa.com",
+    name: "Ana Martínez Torres",
+    email: "ana.martinez@deltatasker.com",
     phone: "+52 55 1234 5678",
-    position: "Contador Senior",
-    department: "Contabilidad",
-    salary: 25000,
+    position: "CEO & Co-Founder",
+    department: "Dirección General",
+    salary: 80000,
     salaryPeriod: "monthly",
-    startDate: "2023-01-15",
+    startDate: "2022-01-01",
     status: "active",
-    rfc: "PEGJ850615RT4",
-    curp: "PEGJ850615HDFRNN03",
+    rfc: "MATA901205KL8",
+    curp: "MATA901205MDFRRN09",
     nss: "12345678901",
-    address: "Av. Insurgentes Sur 1234, CDMX"
+    address: "Av. Reforma 222, CDMX"
   },
   {
     id: "2",
-    name: "María López Hernández",
-    email: "maria.lopez@empresa.com",
+    name: "Luis Hernández Ruiz",
+    email: "luis.hernandez@deltatasker.com",
     phone: "+52 55 9876 5432",
-    position: "Auxiliar Contable",
-    department: "Contabilidad",
-    salary: 5000,
-    salaryPeriod: "biweekly",
-    startDate: "2023-06-01",
+    position: "Director de Automatización",
+    department: "Automatización e IA",
+    salary: 60000,
+    salaryPeriod: "monthly",
+    startDate: "2022-03-15",
     status: "active",
-    rfc: "LOHM920312A45",
-    curp: "LOHM920312MDFRNN08",
+    rfc: "HERL880420RT4",
+    curp: "HERL880420HDFRNS05",
     nss: "98765432109"
   },
   {
     id: "3",
-    name: "Carlos Rodríguez Méndez",
-    email: "carlos.r@freelance.com",
+    name: "Carlos Sánchez López",
+    email: "carlos.sanchez@deltatasker.com",
     phone: "+52 55 5555 1111",
-    position: "Diseñador Gráfico",
-    department: "Marketing",
-    salary: 500,
-    salaryPeriod: "hourly",
-    startDate: "2024-01-10",
+    position: "Ingeniero de Integración Senior",
+    department: "Integración de Sistemas",
+    salary: 45000,
+    salaryPeriod: "monthly",
+    startDate: "2023-01-10",
     status: "active",
-    rfc: "ROMC880725B12"
+    rfc: "SALC920815A45",
+    curp: "SALC920815HDFRPN02",
+    nss: "11223344556"
+  },
+  {
+    id: "4",
+    name: "Patricia Gómez Morales",
+    email: "patricia.gomez@deltatasker.com",
+    phone: "+52 55 4444 2222",
+    position: "Especialista en Soporte Técnico",
+    department: "Soporte Técnico",
+    salary: 300,
+    salaryPeriod: "hourly",
+    startDate: "2023-06-01",
+    status: "active",
+    rfc: "GOMP950622B12",
+    curp: "GOMP950622MDFRMT08"
+  },
+  {
+    id: "5",
+    name: "Roberto Díaz Fernández",
+    email: "roberto.diaz@deltatasker.com",
+    phone: "+52 55 3333 7777",
+    position: "Coordinador de Operaciones",
+    department: "Operaciones",
+    salary: 35000,
+    salaryPeriod: "monthly",
+    startDate: "2022-09-01",
+    status: "active",
+    rfc: "DIFR870310RT4",
+    curp: "DIFR870310HDFFBN04",
+    nss: "22334455667"
   }
 ];
 
@@ -113,7 +144,19 @@ export default function EmployeesPage() {
     address: ""
   });
 
-  const departments = ["Contabilidad", "Administración", "Marketing", "Ventas", "IT", "RRHH", "Operaciones"];
+  const departments = [
+    "Dirección General",
+    "Automatización e IA",
+    "Desarrollo de Software",
+    "Integración de Sistemas",
+    "Soporte Técnico",
+    "Operaciones",
+    "Administración",
+    "Recursos Humanos",
+    "Marketing y Ventas",
+    "Finanzas"
+  ];
+
   const salaryPeriods = [
     { value: "hourly", label: "Por Hora" },
     { value: "weekly", label: "Semanal" },

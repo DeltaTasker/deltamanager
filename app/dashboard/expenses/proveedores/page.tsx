@@ -28,18 +28,15 @@ type Provider = {
   id: string;
   name: string;
   company: string;
-  rfc: string;
   email: string;
   phone: string;
   address: string;
   city: string;
   state: string;
-  postalCode: string;
   category: string;
-  taxRegime: string; // Régimen Fiscal
   status: "active" | "inactive";
   paymentTerms?: string; // Términos de pago (ej: 30 días)
-  bankAccount?: string;
+  contactPerson?: string;
   notes?: string;
 };
 
@@ -49,66 +46,74 @@ const mockProviders: Provider[] = [
     id: "1",
     name: "Amazon Web Services Mexico",
     company: "AWS",
-    rfc: "AWS850615RT4",
     email: "aws-mexico@amazon.com",
     phone: "+52 55 5000 0000",
     address: "Av. Reforma 222",
     city: "Ciudad de México",
     state: "CDMX",
-    postalCode: "06600",
-    category: "Tecnología",
-    taxRegime: "601",
+    category: "Cloud & Hosting",
     status: "active",
     paymentTerms: "Pago inmediato",
-    bankAccount: "****1234"
+    contactPerson: "Soporte AWS México"
   },
   {
     id: "2",
     name: "Microsoft Corporation",
     company: "Microsoft 365",
-    rfc: "MSF920312A45",
     email: "mexico@microsoft.com",
     phone: "+52 55 9000 0000",
     address: "Paseo de la Reforma 505",
     city: "Ciudad de México",
     state: "CDMX",
-    postalCode: "06500",
-    category: "Software",
-    taxRegime: "601",
+    category: "Software y Licencias",
     status: "active",
     paymentTerms: "30 días",
-    bankAccount: "****5678"
+    contactPerson: "Equipo Comercial MX"
   },
   {
     id: "3",
     name: "Papelería y Suministros SA de CV",
     company: "Papelería El Águila",
-    rfc: "PAS780920KL8",
-    email: "ventas@papelagui la.com",
+    email: "ventas@papelaaguila.com",
     phone: "+52 55 1234 5678",
     address: "Calle Juárez 123",
     city: "Guadalajara",
     state: "Jalisco",
-    postalCode: "44100",
-    category: "Suministros",
-    taxRegime: "612",
+    category: "Suministros de Oficina",
     status: "active",
-    paymentTerms: "15 días"
+    paymentTerms: "15 días",
+    contactPerson: "Laura González"
+  },
+  {
+    id: "4",
+    name: "OpenAI LP",
+    company: "OpenAI",
+    email: "support@openai.com",
+    phone: "+1 415 555 0100",
+    address: "3180 18th Street",
+    city: "San Francisco",
+    state: "California",
+    category: "APIs de IA",
+    status: "active",
+    paymentTerms: "Pago inmediato",
+    contactPerson: "OpenAI Support"
   }
 ];
 
-const taxRegimes = [
-  { value: "601", label: "601 - General de Ley Personas Morales" },
-  { value: "603", label: "603 - Personas Morales con Fines no Lucrativos" },
-  { value: "605", label: "605 - Sueldos y Salarios e Ingresos Asimilados a Salarios" },
-  { value: "606", label: "606 - Arrendamiento" },
-  { value: "612", label: "612 - Personas Físicas con Actividades Empresariales y Profesionales" },
-  { value: "621", label: "621 - Incorporación Fiscal" },
-  { value: "625", label: "625 - Régimen de las Actividades Empresariales con ingresos a través de Plataformas Tecnológicas" },
-  { value: "626", label: "626 - Régimen Simplificado de Confianza" }
+const categories = [
+  "Cloud & Hosting",
+  "Software y Licencias",
+  "APIs de IA",
+  "Hardware y Equipos",
+  "Suministros de Oficina",
+  "Servicios Profesionales",
+  "Marketing Digital",
+  "Capacitación y Formación",
+  "Telecomunicaciones",
+  "Mantenimiento",
+  "Transporte y Logística",
+  "Otros"
 ];
-
-const categories = ["Tecnología", "Software", "Suministros", "Servicios Profesionales", "Mantenimiento", "Marketing", "Transporte", "Otros"];
 
 export default function ProvidersPage() {
   const [providers, setProviders] = useState<Provider[]>(mockProviders);
@@ -121,18 +126,15 @@ export default function ProvidersPage() {
   const [formData, setFormData] = useState<Partial<Provider>>({
     name: "",
     company: "",
-    rfc: "",
     email: "",
     phone: "",
     address: "",
     city: "",
     state: "",
-    postalCode: "",
     category: "",
-    taxRegime: "612",
     status: "active",
     paymentTerms: "",
-    bankAccount: "",
+    contactPerson: "",
     notes: ""
   });
 
@@ -140,7 +142,7 @@ export default function ProvidersPage() {
     const matchesSearch = 
       provider.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
       provider.company.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      provider.rfc.toLowerCase().includes(searchTerm.toLowerCase());
+      provider.email.toLowerCase().includes(searchTerm.toLowerCase());
     const matchesCategory = selectedCategory === "all" || provider.category === selectedCategory;
     const matchesStatus = selectedStatus === "all" || provider.status === selectedStatus;
     return matchesSearch && matchesCategory && matchesStatus;
@@ -150,30 +152,22 @@ export default function ProvidersPage() {
     setFormData({
       name: "",
       company: "",
-      rfc: "",
       email: "",
       phone: "",
       address: "",
       city: "",
       state: "",
-      postalCode: "",
       category: "",
-      taxRegime: "612",
       status: "active",
       paymentTerms: "",
-      bankAccount: "",
+      contactPerson: "",
       notes: ""
     });
   };
 
   const handleCreate = () => {
-    if (!formData.company || !formData.rfc || !formData.email) {
-      alert("Por favor completa los campos obligatorios: Empresa, RFC, Email");
-      return;
-    }
-
-    if (formData.rfc && (formData.rfc.length < 12 || formData.rfc.length > 13)) {
-      alert("El RFC debe tener 12 o 13 caracteres");
+    if (!formData.company || !formData.email) {
+      alert("Por favor completa los campos obligatorios: Empresa, Email");
       return;
     }
 
@@ -181,18 +175,15 @@ export default function ProvidersPage() {
       id: Date.now().toString(),
       name: formData.name || formData.company || "",
       company: formData.company || "",
-      rfc: formData.rfc || "",
       email: formData.email || "",
       phone: formData.phone || "",
       address: formData.address || "",
       city: formData.city || "",
       state: formData.state || "",
-      postalCode: formData.postalCode || "",
       category: formData.category || "Otros",
-      taxRegime: formData.taxRegime || "612",
       status: formData.status || "active",
       paymentTerms: formData.paymentTerms,
-      bankAccount: formData.bankAccount,
+      contactPerson: formData.contactPerson,
       notes: formData.notes
     };
 
@@ -207,13 +198,8 @@ export default function ProvidersPage() {
   };
 
   const handleUpdate = () => {
-    if (!formData.company || !formData.rfc || !formData.email) {
+    if (!formData.company || !formData.email) {
       alert("Por favor completa los campos obligatorios");
-      return;
-    }
-
-    if (formData.rfc && (formData.rfc.length < 12 || formData.rfc.length > 13)) {
-      alert("El RFC debe tener 12 o 13 caracteres");
       return;
     }
 
@@ -298,7 +284,7 @@ export default function ProvidersPage() {
             <div className="relative flex-1">
               <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
               <Input
-                placeholder="Buscar por empresa, RFC o nombre..."
+                placeholder="Buscar por empresa, email o nombre..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
                 className="pl-10 bg-slate-900 border-white/10 text-white placeholder-gray-400"
@@ -343,12 +329,12 @@ export default function ProvidersPage() {
               <TableHeader>
                 <TableRow className="border-white/10">
                   <TableHead className="text-gray-400 w-[200px]">Empresa</TableHead>
-                  <TableHead className="text-gray-400 w-[120px]">RFC</TableHead>
-                  <TableHead className="text-gray-400 w-[180px]">Email</TableHead>
-                  <TableHead className="text-gray-400 w-[130px]">Teléfono</TableHead>
+                  <TableHead className="text-gray-400 w-[200px]">Email</TableHead>
+                  <TableHead className="text-gray-400 w-[140px]">Teléfono</TableHead>
                   <TableHead className="text-gray-400 w-[150px]">Categoría</TableHead>
-                  <TableHead className="text-gray-400 w-[150px]">Régimen Fiscal</TableHead>
-                  <TableHead className="text-gray-400 w-[120px]">Ciudad/Estado</TableHead>
+                  <TableHead className="text-gray-400 w-[150px]">Contacto</TableHead>
+                  <TableHead className="text-gray-400 w-[150px]">Ciudad/Estado</TableHead>
+                  <TableHead className="text-gray-400 w-[120px]">Términos Pago</TableHead>
                   <TableHead className="text-gray-400 w-[100px]">Estado</TableHead>
                   <TableHead className="text-gray-400 w-[100px]">Acciones</TableHead>
                 </TableRow>
