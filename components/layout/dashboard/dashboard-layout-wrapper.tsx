@@ -30,9 +30,7 @@ function DashboardLayoutContent({ companies, headerSlot, children }: DashboardLa
       )}>
         {headerSlot}
         <main className="flex-1 overflow-y-auto p-8 bg-gradient-to-br from-slate-900/50 via-slate-800/30 to-slate-900/50">
-          <div className="mx-auto max-w-7xl">
-            {children}
-          </div>
+          {children}
         </main>
       </div>
     </>
