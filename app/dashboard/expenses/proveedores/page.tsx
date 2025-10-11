@@ -34,26 +34,26 @@ const statuses = [
   { value: "cancelled", label: "Cancelado", color: "bg-red-500/10 text-red-600" }
 ];
 
-export default function ServicesPage() {
-  const [services, setServices] = useState<Service[]>(mockServices);
+export default function ProvidersPage() {
+  const [providers, setProviders] = useState<Service[]>(mockServices);
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedCategory, setSelectedCategory] = useState("all");
   const [selectedStatus, setSelectedStatus] = useState("all");
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
-  const [editingService, setEditingService] = useState<Service | null>(null);
+  const [editingProvider, setEditingProvider] = useState<Service | null>(null);
   const [formData, setFormData] = useState({ name: "", provider: "", category: "", monthlyCost: "", renewalDate: "", status: "active" });
 
-  const filteredServices = services.filter(service => {
-    const matchesSearch = service.name.toLowerCase().includes(searchTerm.toLowerCase()) || service.provider.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesCategory = selectedCategory === "all" || service.category === selectedCategory;
-    const matchesStatus = selectedStatus === "all" || service.status === selectedStatus;
+  const filteredProviders = providers.filter(provider => {
+    const matchesSearch = provider.name.toLowerCase().includes(searchTerm.toLowerCase()) || provider.provider.toLowerCase().includes(searchTerm.toLowerCase());
+    const matchesCategory = selectedCategory === "all" || provider.category === selectedCategory;
+    const matchesStatus = selectedStatus === "all" || provider.status === selectedStatus;
     return matchesSearch && matchesCategory && matchesStatus;
   });
 
   const resetForm = () => setFormData({ name: "", provider: "", category: "", monthlyCost: "", renewalDate: "", status: "active" });
 
   const handleCreate = () => {
-    setServices(prev => [{
+    setProviders(prev => [{
       id: Date.now().toString(),
       name: formData.name,
       provider: formData.provider,

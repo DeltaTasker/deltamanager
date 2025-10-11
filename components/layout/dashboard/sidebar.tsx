@@ -63,8 +63,7 @@ const links = [
     items: [
       { href: "/dashboard/expenses", label: "Pagos", icon: CreditCard },
       { href: "/dashboard/expenses/employees", label: "Empleados", icon: UserCircle },
-      { href: "/dashboard/expenses/suppliers", label: "Proveedores", icon: Building },
-      { href: "/dashboard/expenses/services", label: "Servicios", icon: Receipt },
+      { href: "/dashboard/expenses/proveedores", label: "Proveedores", icon: Building },
     ],
   },
   { 
