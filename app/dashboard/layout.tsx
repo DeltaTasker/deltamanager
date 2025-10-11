@@ -11,13 +11,18 @@ export default async function DashboardLayout({ children }: { children: ReactNod
     redirect("/access");
   }
 
+  const { getUserCompanies } = await import("@/modules/companies/server/queries");
+  const companies = await getUserCompanies(session.user.id);
+
   return (
-    <div className="flex min-h-screen w-full bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900">
-      <DashboardSidebar userId={session.user.id} />
+    <div className="flex min-h-screen w-full bg-gradient-to-br from-slate-950 via-slate-900 to-slate-800">
+      <DashboardSidebar companies={companies} />
       <div className="flex flex-1 flex-col">
         <DashboardHeader userId={session.user.id} />
-        <main className="flex-1 overflow-y-auto">
-          {children}
+        <main className="flex-1 overflow-y-auto p-8 bg-gradient-to-br from-slate-900/50 via-slate-800/30 to-slate-900/50">
+          <div className="mx-auto max-w-7xl">
+            {children}
+          </div>
         </main>
       </div>
     </div>
