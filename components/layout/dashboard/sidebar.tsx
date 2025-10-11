@@ -92,10 +92,12 @@ export function DashboardSidebar({ companies }: DashboardSidebarProps) {
   };
 
   const isActive = (href: string) => {
+    // Para el dashboard principal
     if (href === "/dashboard") {
       return pathname === href;
     }
-    return pathname.startsWith(href);
+    // Solo marcar la ruta exacta, no los padres
+    return pathname === href;
   };
 
   return (

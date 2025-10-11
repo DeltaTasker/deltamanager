@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Plus, Search, Edit, Trash2, Download, Check, X, Upload, FileText, UserCircle, Building } from "lucide-react";
+import { Plus, Search, Edit, Trash2, Download, Check, X, Upload, FileText, UserCircle, Building, Eye } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -23,6 +23,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
+import { FilePreviewModal } from "@/components/ui/file-preview-modal";
 
 // Types
 type Provider = {
@@ -123,6 +124,11 @@ export default function ExpensesPage() {
 
   const [providerSearch, setProviderSearch] = useState("");
   const [employeeSearch, setEmployeeSearch] = useState("");
+  
+  // File preview state
+  const [previewFiles, setPreviewFiles] = useState<string[]>([]);
+  const [previewTitle, setPreviewTitle] = useState("");
+  const [isPreviewOpen, setIsPreviewOpen] = useState(false);
 
   const filteredTransactions = transactions.filter(transaction => {
     const matchesSearch = 
@@ -272,6 +278,12 @@ export default function ExpensesPage() {
     }
   };
 
+  const handleViewFiles = (files: string[], title: string) => {
+    setPreviewFiles(files);
+    setPreviewTitle(title);
+    setIsPreviewOpen(true);
+  };
+
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat('es-MX', { style: 'currency', currency: 'MXN' }).format(amount);
   };
@@ -291,6 +303,9 @@ export default function ExpensesPage() {
   const totalExpenses = transactions.filter(t => t.status !== 'cancelled').reduce((sum, t) => sum + t.amount, 0);
   const pendingExpenses = transactions.filter(t => t.status === 'pending').reduce((sum, t) => sum + t.amount, 0);
   const selectedEmployee = employees.find(e => e.id === formData.employeeId);
+  
+  // Check if any transaction has hourly payment
+  const hasHourlyPayments = filteredTransactions.some(t => t.hoursWorked !== undefined);
 
   return (
     <div className="space-y-6">
@@ -386,7 +401,7 @@ export default function ExpensesPage() {
                   <TableHead className="text-gray-400 w-[100px]">Tipo</TableHead>
                   <TableHead className="text-gray-400 w-[200px]">Beneficiario</TableHead>
                   <TableHead className="text-gray-400 w-[250px]">Descripción</TableHead>
-                  <TableHead className="text-gray-400 w-[100px]">Horas</TableHead>
+                  {hasHourlyPayments && <TableHead className="text-gray-400 w-[100px]">Horas</TableHead>}
                   <TableHead className="text-gray-400 w-[120px]">Monto</TableHead>
                   <TableHead className="text-gray-400 w-[150px]">Archivos</TableHead>
                   <TableHead className="text-gray-400 w-[100px]">Estado</TableHead>
@@ -486,20 +501,22 @@ export default function ExpensesPage() {
                         className="bg-gray-800 border-orange-500/30 text-white text-sm h-8"
                       />
                     </TableCell>
-                    <TableCell className="p-2">
-                      {selectedEmployee?.salaryPeriod === "hourly" ? (
-                        <Input
-                          type="number"
-                          step="0.5"
-                          placeholder="Horas"
-                          value={formData.hoursWorked}
-                          onChange={(e) => handleHoursChange(e.target.value)}
-                          className="bg-gray-800 border-orange-500/30 text-white text-sm h-8"
-                        />
-                      ) : (
-                        <span className="text-gray-500 text-sm">N/A</span>
-                      )}
-                    </TableCell>
+                    {hasHourlyPayments && (
+                      <TableCell className="p-2">
+                        {selectedEmployee?.salaryPeriod === "hourly" ? (
+                          <Input
+                            type="number"
+                            step="0.5"
+                            placeholder="Horas"
+                            value={formData.hoursWorked}
+                            onChange={(e) => handleHoursChange(e.target.value)}
+                            className="bg-gray-800 border-orange-500/30 text-white text-sm h-8"
+                          />
+                        ) : (
+                          <span className="text-gray-500 text-sm">-</span>
+                        )}
+                      </TableCell>
+                    )}
                     <TableCell className="p-2">
                       <Input
                         type="number"
@@ -579,16 +596,30 @@ export default function ExpensesPage() {
                       {transaction.providerName || transaction.employeeName}
                     </TableCell>
                     <TableCell className="p-3 text-gray-300 text-sm">{transaction.description}</TableCell>
-                    <TableCell className="p-3 text-white text-sm text-center">
-                      {transaction.hoursWorked ? `${transaction.hoursWorked}h` : "-"}
-                    </TableCell>
+                    {hasHourlyPayments && (
+                      <TableCell className="p-3 text-white text-sm text-center">
+                        {transaction.hoursWorked ? `${transaction.hoursWorked}h` : "-"}
+                      </TableCell>
+                    )}
                     <TableCell className="p-3 text-white font-semibold text-sm">{formatCurrency(transaction.amount)}</TableCell>
                     <TableCell className="p-3 text-xs space-y-1">
                       {transaction.paymentProofFiles.length > 0 && (
-                        <div className="text-green-400">✓ {transaction.paymentProofFiles.length} comprobante(s)</div>
+                        <button
+                          onClick={() => handleViewFiles(transaction.paymentProofFiles, "Comprobantes de Pago")}
+                          className="flex items-center gap-1 text-green-400 hover:text-green-300 transition-colors"
+                        >
+                          <Eye className="h-3 w-3" />
+                          <span>{transaction.paymentProofFiles.length} comprobante(s)</span>
+                        </button>
                       )}
                       {transaction.invoiceFiles.length > 0 && (
-                        <div className="text-blue-400">📄 {transaction.invoiceFiles.length} factura(s)</div>
+                        <button
+                          onClick={() => handleViewFiles(transaction.invoiceFiles, "Facturas")}
+                          className="flex items-center gap-1 text-blue-400 hover:text-blue-300 transition-colors"
+                        >
+                          <Eye className="h-3 w-3" />
+                          <span>{transaction.invoiceFiles.length} factura(s)</span>
+                        </button>
                       )}
                       {transaction.paymentProofFiles.length === 0 && transaction.invoiceFiles.length === 0 && (
                         <div className="text-gray-500">Sin archivos</div>
@@ -614,6 +645,14 @@ export default function ExpensesPage() {
           </div>
         </CardContent>
       </Card>
+
+      {/* File Preview Modal */}
+      <FilePreviewModal
+        files={previewFiles}
+        isOpen={isPreviewOpen}
+        onClose={() => setIsPreviewOpen(false)}
+        title={previewTitle}
+      />
     </div>
   );
 }

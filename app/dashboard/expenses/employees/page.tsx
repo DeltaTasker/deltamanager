@@ -1,12 +1,11 @@
 "use client";
 
 import { useState } from "react";
-import { Plus, Search, Edit, Trash2, Download, Users } from "lucide-react";
+import { Plus, Search, Check, X, Trash2, ChevronDown, ChevronUp, UserCircle } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import {
   Table,
   TableBody,
@@ -16,15 +15,6 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from "@/components/ui/dialog";
-import {
   Select,
   SelectContent,
   SelectItem,
@@ -33,363 +23,304 @@ import {
 } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 
+// Types
 type Employee = {
   id: string;
   name: string;
   email: string;
+  phone: string;
   position: string;
+  department: string;
   salary: number;
   salaryPeriod: "hourly" | "weekly" | "biweekly" | "monthly";
-  hireDate: string;
-  status: "active" | "inactive";
+  startDate: string;
+  status: "active" | "inactive" | "on_leave";
+  rfc?: string;
+  curp?: string;
+  nss?: string; // Número de Seguro Social
+  address?: string;
 };
 
+// Mock Data
 const mockEmployees: Employee[] = [
   {
     id: "1",
     name: "Juan Pérez García",
     email: "juan.perez@empresa.com",
+    phone: "+52 55 1234 5678",
     position: "Contador Senior",
+    department: "Contabilidad",
     salary: 25000,
     salaryPeriod: "monthly",
-    hireDate: "2023-01-15",
-    status: "active"
+    startDate: "2023-01-15",
+    status: "active",
+    rfc: "PEGJ850615RT4",
+    curp: "PEGJ850615HDFRNN03",
+    nss: "12345678901",
+    address: "Av. Insurgentes Sur 1234, CDMX"
   },
   {
     id: "2",
     name: "María López Hernández",
     email: "maria.lopez@empresa.com",
+    phone: "+52 55 9876 5432",
     position: "Auxiliar Contable",
+    department: "Contabilidad",
     salary: 5000,
     salaryPeriod: "biweekly",
-    hireDate: "2023-06-01",
-    status: "active"
+    startDate: "2023-06-01",
+    status: "active",
+    rfc: "LOHM920312A45",
+    curp: "LOHM920312MDFRNN08",
+    nss: "98765432109"
   },
   {
     id: "3",
-    name: "Carlos Rodríguez Sánchez",
-    email: "carlos.rodriguez@empresa.com",
-    position: "Gerente Financiero",
-    salary: 35000,
-    salaryPeriod: "monthly",
-    hireDate: "2022-08-10",
-    status: "active"
+    name: "Carlos Rodríguez Méndez",
+    email: "carlos.r@freelance.com",
+    phone: "+52 55 5555 1111",
+    position: "Diseñador Gráfico",
+    department: "Marketing",
+    salary: 500,
+    salaryPeriod: "hourly",
+    startDate: "2024-01-10",
+    status: "active",
+    rfc: "ROMC880725B12"
   }
-];
-
-const salaryPeriods = [
-  { value: "hourly", label: "Por Hora" },
-  { value: "weekly", label: "Semanal" },
-  { value: "biweekly", label: "Quincenal" },
-  { value: "monthly", label: "Mensual" }
-];
-
-const statuses = [
-  { value: "active", label: "Activo", color: "bg-green-500/10 text-green-600" },
-  { value: "inactive", label: "Inactivo", color: "bg-gray-500/10 text-gray-600" }
 ];
 
 export default function EmployeesPage() {
   const [employees, setEmployees] = useState<Employee[]>(mockEmployees);
   const [searchTerm, setSearchTerm] = useState("");
+  const [selectedDepartment, setSelectedDepartment] = useState("all");
   const [selectedStatus, setSelectedStatus] = useState("all");
-  const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
-  const [editingEmployee, setEditingEmployee] = useState<Employee | null>(null);
-  const [formData, setFormData] = useState({
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [showNewForm, setShowNewForm] = useState(false);
+  
+  const [formData, setFormData] = useState<Partial<Employee>>({
     name: "",
     email: "",
+    phone: "",
     position: "",
-    salary: "",
+    department: "",
+    salary: 0,
     salaryPeriod: "monthly",
-    hireDate: "",
-    status: "active"
+    startDate: new Date().toISOString().split('T')[0],
+    status: "active",
+    rfc: "",
+    curp: "",
+    nss: "",
+    address: ""
   });
 
+  const departments = ["Contabilidad", "Administración", "Marketing", "Ventas", "IT", "RRHH", "Operaciones"];
+  const salaryPeriods = [
+    { value: "hourly", label: "Por Hora" },
+    { value: "weekly", label: "Semanal" },
+    { value: "biweekly", label: "Quincenal" },
+    { value: "monthly", label: "Mensual" }
+  ];
+
   const filteredEmployees = employees.filter(employee => {
-    const matchesSearch = employee.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         employee.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         employee.position.toLowerCase().includes(searchTerm.toLowerCase());
+    const matchesSearch = 
+      employee.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      employee.position.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      employee.email.toLowerCase().includes(searchTerm.toLowerCase());
+    const matchesDepartment = selectedDepartment === "all" || employee.department === selectedDepartment;
     const matchesStatus = selectedStatus === "all" || employee.status === selectedStatus;
-    return matchesSearch && matchesStatus;
+    return matchesSearch && matchesDepartment && matchesStatus;
   });
 
   const resetForm = () => {
     setFormData({
       name: "",
       email: "",
+      phone: "",
       position: "",
-      salary: "",
+      department: "",
+      salary: 0,
       salaryPeriod: "monthly",
-      hireDate: "",
-      status: "active"
+      startDate: new Date().toISOString().split('T')[0],
+      status: "active",
+      rfc: "",
+      curp: "",
+      nss: "",
+      address: ""
     });
   };
 
   const handleCreate = () => {
+    if (!formData.name || !formData.email || !formData.position) {
+      alert("Por favor completa los campos obligatorios: Nombre, Email, Puesto");
+      return;
+    }
+
     const newEmployee: Employee = {
       id: Date.now().toString(),
       name: formData.name,
       email: formData.email,
+      phone: formData.phone || "",
       position: formData.position,
-      salary: parseFloat(formData.salary),
-      salaryPeriod: formData.salaryPeriod as "hourly" | "weekly" | "biweekly" | "monthly",
-      hireDate: formData.hireDate,
-      status: formData.status as "active" | "inactive"
+      department: formData.department || "Sin Departamento",
+      salary: formData.salary || 0,
+      salaryPeriod: formData.salaryPeriod || "monthly",
+      startDate: formData.startDate || new Date().toISOString().split('T')[0],
+      status: formData.status || "active",
+      rfc: formData.rfc,
+      curp: formData.curp,
+      nss: formData.nss,
+      address: formData.address
     };
 
     setEmployees(prev => [newEmployee, ...prev]);
-    setIsCreateDialogOpen(false);
+    setShowNewForm(false);
     resetForm();
   };
 
   const handleEdit = (employee: Employee) => {
-    setEditingEmployee(employee);
-    setFormData({
-      name: employee.name,
-      email: employee.email,
-      position: employee.position,
-      salary: employee.salary.toString(),
-      salaryPeriod: employee.salaryPeriod,
-      hireDate: employee.hireDate,
-      status: employee.status
-    });
+    setEditingId(employee.id);
+    setFormData(employee);
   };
 
   const handleUpdate = () => {
-    if (!editingEmployee) return;
+    if (!formData.name || !formData.email || !formData.position) {
+      alert("Por favor completa los campos obligatorios");
+      return;
+    }
 
-    const updatedEmployee: Employee = {
-      ...editingEmployee,
-      name: formData.name,
-      email: formData.email,
-      position: formData.position,
-      salary: parseFloat(formData.salary),
-      salaryPeriod: formData.salaryPeriod as "hourly" | "weekly" | "biweekly" | "monthly",
-      hireDate: formData.hireDate,
-      status: formData.status as "active" | "inactive"
-    };
-
-    setEmployees(prev => prev.map(e => e.id === editingEmployee.id ? updatedEmployee : e));
-    setEditingEmployee(null);
+    setEmployees(prev => prev.map(emp => 
+      emp.id === editingId ? { ...emp, ...formData } as Employee : emp
+    ));
+    setEditingId(null);
     resetForm();
   };
 
   const handleDelete = (id: string) => {
     if (confirm("¿Estás seguro de eliminar este empleado?")) {
-      setEmployees(prev => prev.filter(e => e.id !== id));
+      setEmployees(prev => prev.filter(emp => emp.id !== id));
     }
   };
 
-  const getStatusBadge = (status: string) => {
-    const statusConfig = statuses.find(s => s.value === status);
-    return (
-      <Badge className={statusConfig?.color || "bg-gray-500/10 text-gray-600"}>
-        {statusConfig?.label || status}
-      </Badge>
-    );
-  };
-
   const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat('es-MX', {
-      style: 'currency',
-      currency: 'MXN'
-    }).format(amount);
+    return new Intl.NumberFormat('es-MX', { style: 'currency', currency: 'MXN' }).format(amount);
   };
 
-  const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString('es-MX');
+  const formatDate = (dateString: string) => new Date(dateString).toLocaleDateString('es-MX');
+
+  const getStatusBadge = (status: string) => {
+    const config = {
+      active: { label: "Activo", className: "bg-green-500/20 text-green-500" },
+      inactive: { label: "Inactivo", className: "bg-gray-500/20 text-gray-500" },
+      on_leave: { label: "En permiso", className: "bg-yellow-500/20 text-yellow-500" }
+    }[status] || { label: status, className: "bg-gray-500/20 text-gray-500" };
+    
+    return <Badge className={`${config.className} text-xs`}>{config.label}</Badge>;
   };
 
-  const totalPayroll = filteredEmployees
-    .filter(e => e.status === 'active')
-    .reduce((sum, e) => sum + e.salary, 0);
+  const getSalaryPeriodLabel = (period: string) => {
+    const labels = {
+      hourly: "Por Hora",
+      weekly: "Semanal",
+      biweekly: "Quincenal",
+      monthly: "Mensual"
+    };
+    return labels[period as keyof typeof labels] || period;
+  };
+
+  const activeEmployees = employees.filter(e => e.status === "active").length;
+  const totalPayroll = employees
+    .filter(e => e.status === "active")
+    .reduce((sum, e) => {
+      // Normalize to monthly for total calculation
+      const monthlySalary = e.salaryPeriod === "hourly" ? e.salary * 160 : 
+                           e.salaryPeriod === "weekly" ? e.salary * 4 :
+                           e.salaryPeriod === "biweekly" ? e.salary * 2 : e.salary;
+      return sum + monthlySalary;
+    }, 0);
 
   return (
     <div className="space-y-6">
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold text-white">Gestión de Empleados</h1>
-          <p className="text-gray-400">Administra el personal y nómina de tu empresa</p>
+          <h1 className="text-3xl font-bold text-white">Empleados</h1>
+          <p className="text-sm text-gray-400">Gestión de personal y nómina</p>
         </div>
-        <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
-          <DialogTrigger asChild>
-            <Button className="bg-gradient-to-r from-blue-500 to-purple-600 text-white hover:from-blue-600 hover:to-purple-700">
-              <Plus className="mr-2 h-4 w-4" />
-              Nuevo Empleado
-            </Button>
-          </DialogTrigger>
-          <DialogContent className="sm:max-w-[600px] bg-gray-900 border-gray-700">
-            <DialogHeader>
-              <DialogTitle className="text-white">Nuevo Empleado</DialogTitle>
-              <DialogDescription className="text-gray-400">
-                Registra un nuevo empleado en el sistema.
-              </DialogDescription>
-            </DialogHeader>
-            <div className="grid gap-4 py-4">
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="name" className="text-white">Nombre Completo</Label>
-                  <Input
-                    id="name"
-                    value={formData.name}
-                    onChange={(e) => setFormData(prev => ({ ...prev, name: e.target.value }))}
-                    placeholder="Nombre completo del empleado"
-                    className="bg-gray-800 border-gray-600 text-white"
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="email" className="text-white">Correo Electrónico</Label>
-                  <Input
-                    id="email"
-                    type="email"
-                    value={formData.email}
-                    onChange={(e) => setFormData(prev => ({ ...prev, email: e.target.value }))}
-                    placeholder="correo@empresa.com"
-                    className="bg-gray-800 border-gray-600 text-white"
-                  />
-                </div>
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="position" className="text-white">Puesto</Label>
-                <Input
-                  id="position"
-                  value={formData.position}
-                  onChange={(e) => setFormData(prev => ({ ...prev, position: e.target.value }))}
-                  placeholder="Ej: Contador, Gerente, Auxiliar..."
-                  className="bg-gray-800 border-gray-600 text-white"
-                />
-              </div>
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="salary" className="text-white">Salario</Label>
-                  <Input
-                    id="salary"
-                    type="number"
-                    step="0.01"
-                    value={formData.salary}
-                    onChange={(e) => setFormData(prev => ({ ...prev, salary: e.target.value }))}
-                    placeholder="0.00"
-                    className="bg-gray-800 border-gray-600 text-white"
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="salaryPeriod" className="text-white">Periodo de Pago</Label>
-                  <Select value={formData.salaryPeriod} onValueChange={(value) => setFormData(prev => ({ ...prev, salaryPeriod: value }))}>
-                    <SelectTrigger className="bg-gray-800 border-gray-600 text-white">
-                      <SelectValue placeholder="Periodo" />
-                    </SelectTrigger>
-                    <SelectContent className="bg-gray-800 border-gray-600">
-                      {salaryPeriods.map((period) => (
-                        <SelectItem key={period.value} value={period.value} className="text-white hover:bg-gray-700">
-                          {period.label}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="hireDate" className="text-white">Fecha de Contratación</Label>
-                <Input
-                  id="hireDate"
-                  type="date"
-                  value={formData.hireDate}
-                  onChange={(e) => setFormData(prev => ({ ...prev, hireDate: e.target.value }))}
-                  className="bg-gray-800 border-gray-600 text-white"
-                />
-              </div>
-            </div>
-            <DialogFooter>
-              <Button
-                type="button"
-                variant="outline"
-                onClick={() => setIsCreateDialogOpen(false)}
-                className="border-gray-600 text-gray-300 hover:bg-gray-700"
-              >
-                Cancelar
-              </Button>
-              <Button onClick={handleCreate} className="bg-gradient-to-r from-blue-500 to-purple-600 text-white hover:from-blue-600 hover:to-purple-700">
-                Crear Empleado
-              </Button>
-            </DialogFooter>
-          </DialogContent>
-        </Dialog>
+        <Button 
+          onClick={() => setShowNewForm(!showNewForm)}
+          className="bg-gradient-to-r from-green-500 to-emerald-600 text-white hover:from-green-600 hover:to-emerald-700"
+        >
+          {showNewForm ? <><X className="mr-2 h-4 w-4" /> Cancelar</> : <><Plus className="mr-2 h-4 w-4" /> Nuevo Empleado</>}
+        </Button>
       </div>
 
-      {/* Summary Cards */}
+      {/* Stats */}
       <div className="grid gap-4 md:grid-cols-3">
-        <Card className="border border-white/10 bg-white/5 backdrop-blur-sm">
+        <Card className="border border-white/10 bg-gradient-to-br from-slate-800/80 to-slate-900/80 backdrop-blur-sm">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardDescription className="text-gray-400">Total Empleados</CardDescription>
-            <Users className="h-5 w-5 text-blue-500" />
+            <CardTitle className="text-sm font-medium text-gray-400">Total Empleados</CardTitle>
+            <UserCircle className="h-4 w-4 text-gray-400" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-white">{filteredEmployees.length}</div>
-            <p className="text-xs text-gray-400">
-              {filteredEmployees.filter(e => e.status === 'active').length} activos
-            </p>
+            <div className="text-2xl font-bold text-white">{employees.length}</div>
+            <p className="text-xs text-gray-500">{activeEmployees} activos</p>
           </CardContent>
         </Card>
 
-        <Card className="border border-white/10 bg-white/5 backdrop-blur-sm">
+        <Card className="border border-white/10 bg-gradient-to-br from-slate-800/80 to-slate-900/80 backdrop-blur-sm">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardDescription className="text-gray-400">Nómina Total</CardDescription>
-            <div className="h-5 w-5 rounded bg-green-500/10 flex items-center justify-center">
-              <div className="h-3 w-3 rounded-full bg-green-500"></div>
-            </div>
+            <CardTitle className="text-sm font-medium text-gray-400">Nómina Mensual</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold text-white">{formatCurrency(totalPayroll)}</div>
-            <p className="text-xs text-gray-400">mensual activa</p>
+            <p className="text-xs text-gray-500">Estimado</p>
           </CardContent>
         </Card>
 
-        <Card className="border border-white/10 bg-white/5 backdrop-blur-sm">
+        <Card className="border border-white/10 bg-gradient-to-br from-slate-800/80 to-slate-900/80 backdrop-blur-sm">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardDescription className="text-gray-400">Salario Promedio</CardDescription>
-            <div className="h-5 w-5 rounded bg-purple-500/10 flex items-center justify-center">
-              <div className="h-3 w-3 rounded-full bg-purple-500"></div>
-            </div>
+            <CardTitle className="text-sm font-medium text-gray-400">Departamentos</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-white">
-              {formatCurrency(filteredEmployees.length > 0 ? totalPayroll / filteredEmployees.filter(e => e.status === 'active').length : 0)}
-            </div>
-            <p className="text-xs text-gray-400">por empleado activo</p>
+            <div className="text-2xl font-bold text-white">{new Set(employees.map(e => e.department)).size}</div>
+            <p className="text-xs text-gray-500">Áreas activas</p>
           </CardContent>
         </Card>
       </div>
 
-      {/* Filters and Search */}
-      <Card className="border border-white/10 bg-white/5 backdrop-blur-sm">
-        <CardHeader>
-          <CardTitle className="text-white">Filtros y Búsqueda</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="flex flex-col gap-4 md:flex-row md:items-center">
-            <div className="flex-1">
-              <div className="relative">
-                <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
-                <Input
-                  placeholder="Buscar por nombre, correo o puesto..."
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  className="pl-10 bg-gray-800 border-gray-600 text-white placeholder-gray-400"
-                />
-              </div>
+      {/* Search & Filters */}
+      <Card className="border border-white/10 bg-gradient-to-br from-slate-800/80 to-slate-900/80 backdrop-blur-sm">
+        <CardContent className="pt-6">
+          <div className="flex gap-4">
+            <div className="relative flex-1">
+              <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
+              <Input
+                placeholder="Buscar por nombre, puesto o email..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="pl-10 bg-slate-900 border-white/10 text-white placeholder-gray-400"
+              />
             </div>
-            <Select value={selectedStatus} onValueChange={setSelectedStatus}>
-              <SelectTrigger className="w-full md:w-[200px] bg-gray-800 border-gray-600 text-white">
-                <SelectValue placeholder="Todos los estados" />
+            <Select value={selectedDepartment} onValueChange={setSelectedDepartment}>
+              <SelectTrigger className="w-[180px] bg-slate-900 border-white/10 text-white">
+                <SelectValue placeholder="Departamento" />
               </SelectTrigger>
               <SelectContent className="bg-gray-800 border-gray-600">
-                <SelectItem value="all" className="text-white hover:bg-gray-700">Todos los estados</SelectItem>
-                {statuses.map((status) => (
-                  <SelectItem key={status.value} value={status.value} className="text-white hover:bg-gray-700">
-                    {status.label}
-                  </SelectItem>
+                <SelectItem value="all" className="text-white">Todos</SelectItem>
+                {departments.map((dept) => (
+                  <SelectItem key={dept} value={dept} className="text-white">{dept}</SelectItem>
                 ))}
+              </SelectContent>
+            </Select>
+            <Select value={selectedStatus} onValueChange={setSelectedStatus}>
+              <SelectTrigger className="w-[180px] bg-slate-900 border-white/10 text-white">
+                <SelectValue placeholder="Estado" />
+              </SelectTrigger>
+              <SelectContent className="bg-gray-800 border-gray-600">
+                <SelectItem value="all" className="text-white">Todos</SelectItem>
+                <SelectItem value="active" className="text-white">Activo</SelectItem>
+                <SelectItem value="inactive" className="text-white">Inactivo</SelectItem>
+                <SelectItem value="on_leave" className="text-white">En permiso</SelectItem>
               </SelectContent>
             </Select>
           </div>
@@ -397,181 +328,286 @@ export default function EmployeesPage() {
       </Card>
 
       {/* Employees Table */}
-      <Card className="border border-white/10 bg-white/5 backdrop-blur-sm">
+      <Card className="border border-white/10 bg-gradient-to-br from-slate-800/80 to-slate-900/80 backdrop-blur-sm">
         <CardHeader>
-          <div className="flex items-center justify-between">
-            <CardTitle className="text-white">Lista de Empleados</CardTitle>
-            <Button variant="outline" size="sm" className="border-gray-600 text-gray-300 hover:bg-gray-700">
-              <Download className="mr-2 h-4 w-4" />
-              Exportar
-            </Button>
-          </div>
+          <CardTitle className="text-white">Lista de Empleados</CardTitle>
+          <CardDescription className="text-gray-400">
+            {filteredEmployees.length} empleado(s) encontrado(s)
+          </CardDescription>
         </CardHeader>
         <CardContent>
-          <Table>
-            <TableHeader>
-              <TableRow className="border-gray-700">
-                <TableHead className="text-gray-400">Nombre</TableHead>
-                <TableHead className="text-gray-400">Correo</TableHead>
-                <TableHead className="text-gray-400">Puesto</TableHead>
-                <TableHead className="text-gray-400">Salario</TableHead>
-                <TableHead className="text-gray-400">Fecha de Contratación</TableHead>
-                <TableHead className="text-gray-400">Estado</TableHead>
-                <TableHead className="text-gray-400">Acciones</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {filteredEmployees.map((employee) => (
-                <TableRow key={employee.id} className="border-gray-700">
-                  <TableCell className="text-white">{employee.name}</TableCell>
-                  <TableCell className="text-gray-300">{employee.email}</TableCell>
-                  <TableCell className="text-gray-300">{employee.position}</TableCell>
-                  <TableCell className="text-white font-medium">{formatCurrency(employee.salary)}</TableCell>
-                  <TableCell className="text-gray-300">{formatDate(employee.hireDate)}</TableCell>
-                  <TableCell>{getStatusBadge(employee.status)}</TableCell>
-                  <TableCell>
-                    <div className="flex items-center gap-2">
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => handleEdit(employee)}
-                        className="text-blue-400 hover:bg-blue-500/10 hover:text-blue-300"
-                      >
-                        <Edit className="h-4 w-4" />
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => handleDelete(employee.id)}
-                        className="text-red-400 hover:bg-red-500/10 hover:text-red-300"
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
-                    </div>
-                  </TableCell>
+          <div className="overflow-x-auto">
+            <Table>
+              <TableHeader>
+                <TableRow className="border-white/10">
+                  <TableHead className="text-gray-400 w-[200px]">Nombre</TableHead>
+                  <TableHead className="text-gray-400 w-[180px]">Puesto</TableHead>
+                  <TableHead className="text-gray-400 w-[150px]">Departamento</TableHead>
+                  <TableHead className="text-gray-400 w-[200px]">Email</TableHead>
+                  <TableHead className="text-gray-400 w-[130px]">Teléfono</TableHead>
+                  <TableHead className="text-gray-400 w-[120px]">Salario</TableHead>
+                  <TableHead className="text-gray-400 w-[110px]">Periodo</TableHead>
+                  <TableHead className="text-gray-400 w-[100px]">RFC</TableHead>
+                  <TableHead className="text-gray-400 w-[100px]">Estado</TableHead>
+                  <TableHead className="text-gray-400 w-[100px]">Acciones</TableHead>
                 </TableRow>
-              ))}
-            </TableBody>
-          </Table>
+              </TableHeader>
+              <TableBody>
+                {/* New Form Row */}
+                {showNewForm && (
+                  <TableRow className="border-white/10 bg-green-500/5">
+                    <TableCell className="p-2">
+                      <Input
+                        placeholder="Nombre completo *"
+                        value={formData.name}
+                        onChange={(e) => setFormData(prev => ({ ...prev, name: e.target.value }))}
+                        className="bg-gray-800 border-green-500/30 text-white text-sm h-8"
+                      />
+                    </TableCell>
+                    <TableCell className="p-2">
+                      <Input
+                        placeholder="Puesto *"
+                        value={formData.position}
+                        onChange={(e) => setFormData(prev => ({ ...prev, position: e.target.value }))}
+                        className="bg-gray-800 border-green-500/30 text-white text-sm h-8"
+                      />
+                    </TableCell>
+                    <TableCell className="p-2">
+                      <Select value={formData.department} onValueChange={(value) => setFormData(prev => ({ ...prev, department: value }))}>
+                        <SelectTrigger className="bg-gray-800 border-green-500/30 text-white text-sm h-8">
+                          <SelectValue placeholder="Departamento" />
+                        </SelectTrigger>
+                        <SelectContent className="bg-gray-800 border-gray-600">
+                          {departments.map((dept) => (
+                            <SelectItem key={dept} value={dept} className="text-white text-sm">{dept}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </TableCell>
+                    <TableCell className="p-2">
+                      <Input
+                        type="email"
+                        placeholder="email@empresa.com *"
+                        value={formData.email}
+                        onChange={(e) => setFormData(prev => ({ ...prev, email: e.target.value }))}
+                        className="bg-gray-800 border-green-500/30 text-white text-sm h-8"
+                      />
+                    </TableCell>
+                    <TableCell className="p-2">
+                      <Input
+                        placeholder="+52 55 1234 5678"
+                        value={formData.phone}
+                        onChange={(e) => setFormData(prev => ({ ...prev, phone: e.target.value }))}
+                        className="bg-gray-800 border-green-500/30 text-white text-sm h-8"
+                      />
+                    </TableCell>
+                    <TableCell className="p-2">
+                      <Input
+                        type="number"
+                        step="0.01"
+                        placeholder="Salario"
+                        value={formData.salary}
+                        onChange={(e) => setFormData(prev => ({ ...prev, salary: parseFloat(e.target.value) || 0 }))}
+                        className="bg-gray-800 border-green-500/30 text-white text-sm h-8"
+                      />
+                    </TableCell>
+                    <TableCell className="p-2">
+                      <Select value={formData.salaryPeriod} onValueChange={(value: any) => setFormData(prev => ({ ...prev, salaryPeriod: value }))}>
+                        <SelectTrigger className="bg-gray-800 border-green-500/30 text-white text-sm h-8">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent className="bg-gray-800 border-gray-600">
+                          {salaryPeriods.map((period) => (
+                            <SelectItem key={period.value} value={period.value} className="text-white text-sm">{period.label}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </TableCell>
+                    <TableCell className="p-2">
+                      <Input
+                        placeholder="RFC"
+                        value={formData.rfc}
+                        onChange={(e) => setFormData(prev => ({ ...prev, rfc: e.target.value.toUpperCase() }))}
+                        className="bg-gray-800 border-green-500/30 text-white text-sm h-8 uppercase"
+                        maxLength={13}
+                      />
+                    </TableCell>
+                    <TableCell className="p-2">
+                      <Select value={formData.status} onValueChange={(value: any) => setFormData(prev => ({ ...prev, status: value }))}>
+                        <SelectTrigger className="bg-gray-800 border-green-500/30 text-white text-sm h-8">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent className="bg-gray-800 border-gray-600">
+                          <SelectItem value="active" className="text-white text-sm">Activo</SelectItem>
+                          <SelectItem value="inactive" className="text-white text-sm">Inactivo</SelectItem>
+                          <SelectItem value="on_leave" className="text-white text-sm">En permiso</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </TableCell>
+                    <TableCell className="p-2">
+                      <div className="flex gap-1">
+                        <Button size="sm" onClick={handleCreate} className="h-8 bg-green-600 hover:bg-green-700">
+                          <Check className="h-4 w-4" />
+                        </Button>
+                        <Button size="sm" variant="ghost" onClick={() => { setShowNewForm(false); resetForm(); }} className="h-8 text-red-400 hover:bg-red-500/10">
+                          <X className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                )}
+
+                {/* Existing Employees */}
+                {filteredEmployees.map((employee) => {
+                  const isEditing = editingId === employee.id;
+                  
+                  return (
+                    <TableRow key={employee.id} className={`border-white/10 hover:bg-white/5 ${isEditing ? 'bg-blue-500/5' : ''}`}>
+                      <TableCell className="p-3">
+                        {isEditing ? (
+                          <Input
+                            value={formData.name}
+                            onChange={(e) => setFormData(prev => ({ ...prev, name: e.target.value }))}
+                            className="bg-gray-800 border-blue-500/30 text-white text-sm h-8"
+                          />
+                        ) : (
+                          <div>
+                            <div className="text-white text-sm font-medium">{employee.name}</div>
+                            <div className="text-gray-400 text-xs">Desde {formatDate(employee.startDate)}</div>
+                          </div>
+                        )}
+                      </TableCell>
+                      <TableCell className="p-3">
+                        {isEditing ? (
+                          <Input
+                            value={formData.position}
+                            onChange={(e) => setFormData(prev => ({ ...prev, position: e.target.value }))}
+                            className="bg-gray-800 border-blue-500/30 text-white text-sm h-8"
+                          />
+                        ) : (
+                          <span className="text-gray-300 text-sm">{employee.position}</span>
+                        )}
+                      </TableCell>
+                      <TableCell className="p-3">
+                        {isEditing ? (
+                          <Select value={formData.department} onValueChange={(value) => setFormData(prev => ({ ...prev, department: value }))}>
+                            <SelectTrigger className="bg-gray-800 border-blue-500/30 text-white text-sm h-8">
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent className="bg-gray-800 border-gray-600">
+                              {departments.map((dept) => (
+                                <SelectItem key={dept} value={dept} className="text-white text-sm">{dept}</SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        ) : (
+                          <Badge variant="outline" className="text-xs">{employee.department}</Badge>
+                        )}
+                      </TableCell>
+                      <TableCell className="p-3">
+                        {isEditing ? (
+                          <Input
+                            type="email"
+                            value={formData.email}
+                            onChange={(e) => setFormData(prev => ({ ...prev, email: e.target.value }))}
+                            className="bg-gray-800 border-blue-500/30 text-white text-sm h-8"
+                          />
+                        ) : (
+                          <span className="text-gray-300 text-sm">{employee.email}</span>
+                        )}
+                      </TableCell>
+                      <TableCell className="p-3">
+                        {isEditing ? (
+                          <Input
+                            value={formData.phone}
+                            onChange={(e) => setFormData(prev => ({ ...prev, phone: e.target.value }))}
+                            className="bg-gray-800 border-blue-500/30 text-white text-sm h-8"
+                          />
+                        ) : (
+                          <span className="text-gray-300 text-sm">{employee.phone}</span>
+                        )}
+                      </TableCell>
+                      <TableCell className="p-3">
+                        {isEditing ? (
+                          <Input
+                            type="number"
+                            step="0.01"
+                            value={formData.salary}
+                            onChange={(e) => setFormData(prev => ({ ...prev, salary: parseFloat(e.target.value) || 0 }))}
+                            className="bg-gray-800 border-blue-500/30 text-white text-sm h-8"
+                          />
+                        ) : (
+                          <span className="text-white font-semibold text-sm">{formatCurrency(employee.salary)}</span>
+                        )}
+                      </TableCell>
+                      <TableCell className="p-3">
+                        {isEditing ? (
+                          <Select value={formData.salaryPeriod} onValueChange={(value: any) => setFormData(prev => ({ ...prev, salaryPeriod: value }))}>
+                            <SelectTrigger className="bg-gray-800 border-blue-500/30 text-white text-sm h-8">
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent className="bg-gray-800 border-gray-600">
+                              {salaryPeriods.map((period) => (
+                                <SelectItem key={period.value} value={period.value} className="text-white text-sm">{period.label}</SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        ) : (
+                          <Badge className="bg-purple-500/20 text-purple-400 text-xs">{getSalaryPeriodLabel(employee.salaryPeriod)}</Badge>
+                        )}
+                      </TableCell>
+                      <TableCell className="p-3">
+                        {isEditing ? (
+                          <Input
+                            value={formData.rfc}
+                            onChange={(e) => setFormData(prev => ({ ...prev, rfc: e.target.value.toUpperCase() }))}
+                            className="bg-gray-800 border-blue-500/30 text-white text-sm h-8 uppercase"
+                            maxLength={13}
+                          />
+                        ) : (
+                          <span className="text-gray-300 text-sm font-mono">{employee.rfc || "-"}</span>
+                        )}
+                      </TableCell>
+                      <TableCell className="p-3">{getStatusBadge(employee.status)}</TableCell>
+                      <TableCell className="p-3">
+                        {isEditing ? (
+                          <div className="flex gap-1">
+                            <Button size="sm" onClick={handleUpdate} className="h-8 bg-green-600 hover:bg-green-700">
+                              <Check className="h-4 w-4" />
+                            </Button>
+                            <Button size="sm" variant="ghost" onClick={() => { setEditingId(null); resetForm(); }} className="h-8 text-gray-400 hover:bg-gray-700">
+                              <X className="h-4 w-4" />
+                            </Button>
+                          </div>
+                        ) : (
+                          <div className="flex gap-1">
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => handleEdit(employee)}
+                              className="h-8 text-blue-400 hover:bg-blue-500/10"
+                            >
+                              <ChevronDown className="h-4 w-4" />
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => handleDelete(employee.id)}
+                              className="h-8 text-red-400 hover:bg-red-500/10"
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          </div>
+                        )}
+                      </TableCell>
+                    </TableRow>
+                  );
+                })}
+              </TableBody>
+            </Table>
+          </div>
         </CardContent>
       </Card>
-
-      {/* Edit Dialog */}
-      <Dialog open={!!editingEmployee} onOpenChange={() => setEditingEmployee(null)}>
-        <DialogContent className="sm:max-w-[600px] bg-gray-900 border-gray-700">
-          <DialogHeader>
-            <DialogTitle className="text-white">Editar Empleado</DialogTitle>
-            <DialogDescription className="text-gray-400">
-              Modifica los datos del empleado.
-            </DialogDescription>
-          </DialogHeader>
-          <div className="grid gap-4 py-4">
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="edit-name" className="text-white">Nombre Completo</Label>
-                <Input
-                  id="edit-name"
-                  value={formData.name}
-                  onChange={(e) => setFormData(prev => ({ ...prev, name: e.target.value }))}
-                  placeholder="Nombre completo del empleado"
-                  className="bg-gray-800 border-gray-600 text-white"
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="edit-email" className="text-white">Correo Electrónico</Label>
-                <Input
-                  id="edit-email"
-                  type="email"
-                  value={formData.email}
-                  onChange={(e) => setFormData(prev => ({ ...prev, email: e.target.value }))}
-                  placeholder="correo@empresa.com"
-                  className="bg-gray-800 border-gray-600 text-white"
-                />
-              </div>
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="edit-position" className="text-white">Puesto</Label>
-              <Input
-                id="edit-position"
-                value={formData.position}
-                onChange={(e) => setFormData(prev => ({ ...prev, position: e.target.value }))}
-                placeholder="Ej: Contador, Gerente, Auxiliar..."
-                className="bg-gray-800 border-gray-600 text-white"
-              />
-            </div>
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="edit-salary" className="text-white">Salario</Label>
-                <Input
-                  id="edit-salary"
-                  type="number"
-                  step="0.01"
-                  value={formData.salary}
-                  onChange={(e) => setFormData(prev => ({ ...prev, salary: e.target.value }))}
-                  placeholder="0.00"
-                  className="bg-gray-800 border-gray-600 text-white"
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="edit-salaryPeriod" className="text-white">Periodo de Pago</Label>
-                <Select value={formData.salaryPeriod} onValueChange={(value) => setFormData(prev => ({ ...prev, salaryPeriod: value }))}>
-                  <SelectTrigger className="bg-gray-800 border-gray-600 text-white">
-                    <SelectValue placeholder="Periodo" />
-                  </SelectTrigger>
-                  <SelectContent className="bg-gray-800 border-gray-600">
-                    {salaryPeriods.map((period) => (
-                      <SelectItem key={period.value} value={period.value} className="text-white hover:bg-gray-700">
-                        {period.label}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-            </div>
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="edit-hireDate" className="text-white">Fecha de Contratación</Label>
-                <Input
-                  id="edit-hireDate"
-                  type="date"
-                  value={formData.hireDate}
-                  onChange={(e) => setFormData(prev => ({ ...prev, hireDate: e.target.value }))}
-                  className="bg-gray-800 border-gray-600 text-white"
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="edit-status" className="text-white">Estado</Label>
-                <Select value={formData.status} onValueChange={(value) => setFormData(prev => ({ ...prev, status: value }))}>
-                  <SelectTrigger className="bg-gray-800 border-gray-600 text-white">
-                    <SelectValue placeholder="Seleccionar estado" />
-                  </SelectTrigger>
-                  <SelectContent className="bg-gray-800 border-gray-600">
-                    {statuses.map((status) => (
-                      <SelectItem key={status.value} value={status.value} className="text-white hover:bg-gray-700">
-                        {status.label}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-            </div>
-          </div>
-          <DialogFooter>
-            <Button
-              type="button"
-              variant="outline"
-              onClick={() => setEditingEmployee(null)}
-              className="border-gray-600 text-gray-300 hover:bg-gray-700"
-            >
-              Cancelar
-            </Button>
-            <Button onClick={handleUpdate} className="bg-gradient-to-r from-blue-500 to-purple-600 text-white hover:from-blue-600 hover:to-purple-700">
-              Actualizar
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
     </div>
   );
 }
-
