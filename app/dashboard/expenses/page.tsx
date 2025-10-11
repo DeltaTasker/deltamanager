@@ -105,6 +105,7 @@ export default function ExpensesPage() {
   const [transactions, setTransactions] = useState<ExpenseTransaction[]>(mockExpenseData);
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedStatus, setSelectedStatus] = useState("all");
+  const [selectedPaymentType, setSelectedPaymentType] = useState("all"); // Nuevo filtro
   const [editingId, setEditingId] = useState<string | null>(null);
   const [showNewForm, setShowNewForm] = useState(false);
   
@@ -136,7 +137,8 @@ export default function ExpensesPage() {
       transaction.providerName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
       transaction.employeeName?.toLowerCase().includes(searchTerm.toLowerCase());
     const matchesStatus = selectedStatus === "all" || transaction.status === selectedStatus;
-    return matchesSearch && matchesStatus;
+    const matchesType = selectedPaymentType === "all" || transaction.paymentType === selectedPaymentType;
+    return matchesSearch && matchesStatus && matchesType;
   });
 
   const filteredProviders = providers.filter(p =>
@@ -300,12 +302,16 @@ export default function ExpensesPage() {
     return <Badge className={`${config.className} text-xs`}>{config.label}</Badge>;
   };
 
-  const totalExpenses = transactions.filter(t => t.status !== 'cancelled').reduce((sum, t) => sum + t.amount, 0);
-  const pendingExpenses = transactions.filter(t => t.status === 'pending').reduce((sum, t) => sum + t.amount, 0);
   const selectedEmployee = employees.find(e => e.id === formData.employeeId);
   
   // Check if any transaction has hourly payment
   const hasHourlyPayments = filteredTransactions.some(t => t.hoursWorked !== undefined);
+
+  // Calculated metrics based on filtered transactions
+  const totalExpenses = filteredTransactions.filter(t => t.status !== 'cancelled').reduce((sum, t) => sum + t.amount, 0);
+  const pendingExpenses = filteredTransactions.filter(t => t.status === 'pending').reduce((sum, t) => sum + t.amount, 0);
+  const employeePayments = filteredTransactions.filter(t => t.paymentType === 'employee' && t.status !== 'cancelled').reduce((sum, t) => sum + t.amount, 0);
+  const providerPayments = filteredTransactions.filter(t => t.paymentType === 'provider' && t.status !== 'cancelled').reduce((sum, t) => sum + t.amount, 0);
 
   return (
     <div className="space-y-6">
@@ -324,14 +330,14 @@ export default function ExpensesPage() {
       </div>
 
       {/* Stats */}
-      <div className="grid gap-4 md:grid-cols-3">
+      <div className="grid gap-4 md:grid-cols-4">
         <Card className="border border-white/10 bg-gradient-to-br from-slate-800/80 to-slate-900/80 backdrop-blur-sm">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium text-gray-400">Total Pagos</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-white">{transactions.length}</div>
-            <p className="text-xs text-gray-500">{transactions.filter(t => t.status === 'paid').length} completados</p>
+            <div className="text-2xl font-bold text-white">{filteredTransactions.length}</div>
+            <p className="text-xs text-gray-500">{filteredTransactions.filter(t => t.status === 'paid').length} completados</p>
           </CardContent>
         </Card>
 
@@ -341,17 +347,31 @@ export default function ExpensesPage() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold text-white">{formatCurrency(totalExpenses)}</div>
-            <p className="text-xs text-gray-500">Pagado y pendiente</p>
+            <p className="text-xs text-gray-500">
+              {selectedPaymentType === 'employee' && 'Empleados'}
+              {selectedPaymentType === 'provider' && 'Proveedores'}
+              {selectedPaymentType === 'all' && 'Todos'}
+            </p>
           </CardContent>
         </Card>
 
         <Card className="border border-white/10 bg-gradient-to-br from-slate-800/80 to-slate-900/80 backdrop-blur-sm">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium text-gray-400">Pendiente de Pago</CardTitle>
+            <CardTitle className="text-sm font-medium text-gray-400">A Empleados</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-yellow-500">{formatCurrency(pendingExpenses)}</div>
-            <p className="text-xs text-gray-500">Por pagar</p>
+            <div className="text-2xl font-bold text-blue-400">{formatCurrency(employeePayments)}</div>
+            <p className="text-xs text-gray-500">Nómina total</p>
+          </CardContent>
+        </Card>
+
+        <Card className="border border-white/10 bg-gradient-to-br from-slate-800/80 to-slate-900/80 backdrop-blur-sm">
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium text-gray-400">A Proveedores</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold text-purple-400">{formatCurrency(providerPayments)}</div>
+            <p className="text-xs text-gray-500">Servicios total</p>
           </CardContent>
         </Card>
       </div>
@@ -369,6 +389,16 @@ export default function ExpensesPage() {
                 className="pl-10 bg-slate-900 border-white/10 text-white placeholder-gray-400"
               />
             </div>
+            <Select value={selectedPaymentType} onValueChange={setSelectedPaymentType}>
+              <SelectTrigger className="w-[180px] bg-slate-900 border-white/10 text-white">
+                <SelectValue placeholder="Tipo de Pago" />
+              </SelectTrigger>
+              <SelectContent className="bg-gray-800 border-gray-600">
+                <SelectItem value="all" className="text-white">Todos</SelectItem>
+                <SelectItem value="employee" className="text-white">Empleados</SelectItem>
+                <SelectItem value="provider" className="text-white">Proveedores</SelectItem>
+              </SelectContent>
+            </Select>
             <Select value={selectedStatus} onValueChange={setSelectedStatus}>
               <SelectTrigger className="w-[180px] bg-slate-900 border-white/10 text-white">
                 <SelectValue placeholder="Estado" />
