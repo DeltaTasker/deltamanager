@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Plus, Search, Check, X, Trash2, ChevronDown, Building } from "lucide-react";
+import { Plus, Search, Check, X, Trash2, ChevronDown, Building, ExternalLink } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -29,14 +29,10 @@ type Provider = {
   name: string;
   company: string;
   email: string;
-  phone: string;
+  website?: string;
   address: string;
-  city: string;
-  state: string;
   category: string;
   status: "active" | "inactive";
-  paymentTerms?: string;
-  contactPerson?: string;
   notes?: string;
 };
 
@@ -44,59 +40,43 @@ type Provider = {
 const mockProviders: Provider[] = [
   {
     id: "1",
-    name: "Amazon Web Services Mexico",
-    company: "AWS",
+    name: "AWS",
+    company: "Amazon Web Services",
     email: "aws-mexico@amazon.com",
-    phone: "+52 55 5000 0000",
-    address: "Av. Reforma 222",
-    city: "Ciudad de México",
-    state: "CDMX",
+    website: "https://aws.amazon.com",
+    address: "Av. Reforma 222, CDMX",
     category: "Cloud & Hosting",
-    status: "active",
-    paymentTerms: "Pago inmediato",
-    contactPerson: "Soporte AWS México"
+    status: "active"
   },
   {
     id: "2",
-    name: "Microsoft Corporation",
-    company: "Microsoft 365",
+    name: "Microsoft",
+    company: "Microsoft Corporation",
     email: "mexico@microsoft.com",
-    phone: "+52 55 9000 0000",
-    address: "Paseo de la Reforma 505",
-    city: "Ciudad de México",
-    state: "CDMX",
+    website: "https://www.microsoft.com",
+    address: "Paseo de la Reforma 505, CDMX",
     category: "Software y Licencias",
-    status: "active",
-    paymentTerms: "30 días",
-    contactPerson: "Equipo Comercial MX"
+    status: "active"
   },
   {
     id: "3",
-    name: "Papelería y Suministros SA de CV",
-    company: "Papelería El Águila",
-    email: "ventas@papelaaguila.com",
-    phone: "+52 55 1234 5678",
-    address: "Calle Juárez 123",
-    city: "Guadalajara",
-    state: "Jalisco",
-    category: "Suministros de Oficina",
-    status: "active",
-    paymentTerms: "15 días",
-    contactPerson: "Laura González"
+    name: "OpenAI",
+    company: "OpenAI LP",
+    email: "support@openai.com",
+    website: "https://openai.com",
+    address: "3180 18th Street, San Francisco",
+    category: "APIs de IA",
+    status: "active"
   },
   {
     id: "4",
-    name: "OpenAI LP",
-    company: "OpenAI",
-    email: "support@openai.com",
-    phone: "+1 415 555 0100",
-    address: "3180 18th Street",
-    city: "San Francisco",
-    state: "California",
+    name: "Anthropic",
+    company: "Anthropic PBC",
+    email: "support@anthropic.com",
+    website: "https://anthropic.com",
+    address: "San Francisco, CA",
     category: "APIs de IA",
-    status: "active",
-    paymentTerms: "Pago inmediato",
-    contactPerson: "OpenAI Support"
+    status: "active"
   }
 ];
 
@@ -127,14 +107,10 @@ export default function ProvidersPage() {
     name: "",
     company: "",
     email: "",
-    phone: "",
+    website: "",
     address: "",
-    city: "",
-    state: "",
     category: "",
     status: "active",
-    paymentTerms: "",
-    contactPerson: "",
     notes: ""
   });
 
@@ -153,37 +129,29 @@ export default function ProvidersPage() {
       name: "",
       company: "",
       email: "",
-      phone: "",
+      website: "",
       address: "",
-      city: "",
-      state: "",
       category: "",
       status: "active",
-      paymentTerms: "",
-      contactPerson: "",
       notes: ""
     });
   };
 
   const handleCreate = () => {
-    if (!formData.company || !formData.email) {
-      alert("Por favor completa los campos obligatorios: Empresa, Email");
+    if (!formData.name || !formData.email) {
+      alert("Por favor completa los campos obligatorios: Nombre, Email");
       return;
     }
 
     const newProvider: Provider = {
       id: Date.now().toString(),
-      name: formData.name || formData.company || "",
-      company: formData.company || "",
+      name: formData.name || "",
+      company: formData.company || formData.name || "",
       email: formData.email || "",
-      phone: formData.phone || "",
+      website: formData.website,
       address: formData.address || "",
-      city: formData.city || "",
-      state: formData.state || "",
       category: formData.category || "Otros",
       status: formData.status || "active",
-      paymentTerms: formData.paymentTerms,
-      contactPerson: formData.contactPerson,
       notes: formData.notes
     };
 
@@ -198,7 +166,7 @@ export default function ProvidersPage() {
   };
 
   const handleUpdate = () => {
-    if (!formData.company || !formData.email) {
+    if (!formData.name || !formData.email) {
       alert("Por favor completa los campos obligatorios");
       return;
     }
@@ -268,11 +236,11 @@ export default function ProvidersPage() {
 
         <Card className="border border-white/10 bg-gradient-to-br from-slate-800/80 to-slate-900/80 backdrop-blur-sm">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium text-gray-400">Estados</CardTitle>
+            <CardTitle className="text-sm font-medium text-gray-400">Total APIs</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-white">{new Set(providers.map(p => p.state)).size}</div>
-            <p className="text-xs text-gray-500">Ubicaciones</p>
+            <div className="text-2xl font-bold text-white">{providers.filter(p => p.category === "APIs de IA").length}</div>
+            <p className="text-xs text-gray-500">Servicios de IA</p>
           </CardContent>
         </Card>
       </div>
@@ -284,7 +252,7 @@ export default function ProvidersPage() {
             <div className="relative flex-1">
               <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
               <Input
-                placeholder="Buscar por empresa, email o nombre..."
+                placeholder="Buscar por nombre, empresa o email..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
                 className="pl-10 bg-slate-900 border-white/10 text-white placeholder-gray-400"
@@ -328,13 +296,11 @@ export default function ProvidersPage() {
             <Table>
               <TableHeader>
                 <TableRow className="border-white/10">
-                  <TableHead className="text-gray-400 w-[200px]">Empresa</TableHead>
-                  <TableHead className="text-gray-400 w-[200px]">Email</TableHead>
-                  <TableHead className="text-gray-400 w-[140px]">Teléfono</TableHead>
+                  <TableHead className="text-gray-400 w-[180px]">Nombre</TableHead>
+                  <TableHead className="text-gray-400 w-[220px]">Email</TableHead>
+                  <TableHead className="text-gray-400 w-[200px]">Sitio Web</TableHead>
+                  <TableHead className="text-gray-400 w-[200px]">Dirección</TableHead>
                   <TableHead className="text-gray-400 w-[150px]">Categoría</TableHead>
-                  <TableHead className="text-gray-400 w-[150px]">Contacto</TableHead>
-                  <TableHead className="text-gray-400 w-[150px]">Ciudad/Estado</TableHead>
-                  <TableHead className="text-gray-400 w-[120px]">Términos Pago</TableHead>
                   <TableHead className="text-gray-400 w-[100px]">Estado</TableHead>
                   <TableHead className="text-gray-400 w-[100px]">Acciones</TableHead>
                 </TableRow>
@@ -345,9 +311,9 @@ export default function ProvidersPage() {
                   <TableRow className="border-white/10 bg-indigo-500/5">
                     <TableCell className="p-2">
                       <Input
-                        placeholder="Nombre de la empresa *"
-                        value={formData.company}
-                        onChange={(e) => setFormData(prev => ({ ...prev, company: e.target.value }))}
+                        placeholder="Nombre corto *"
+                        value={formData.name}
+                        onChange={(e) => setFormData(prev => ({ ...prev, name: e.target.value }))}
                         className="bg-gray-800 border-indigo-500/30 text-white text-sm h-8"
                       />
                     </TableCell>
@@ -362,9 +328,17 @@ export default function ProvidersPage() {
                     </TableCell>
                     <TableCell className="p-2">
                       <Input
-                        placeholder="+52 55 1234 5678"
-                        value={formData.phone}
-                        onChange={(e) => setFormData(prev => ({ ...prev, phone: e.target.value }))}
+                        placeholder="https://ejemplo.com"
+                        value={formData.website}
+                        onChange={(e) => setFormData(prev => ({ ...prev, website: e.target.value }))}
+                        className="bg-gray-800 border-indigo-500/30 text-white text-sm h-8"
+                      />
+                    </TableCell>
+                    <TableCell className="p-2">
+                      <Input
+                        placeholder="Dirección completa"
+                        value={formData.address}
+                        onChange={(e) => setFormData(prev => ({ ...prev, address: e.target.value }))}
                         className="bg-gray-800 border-indigo-500/30 text-white text-sm h-8"
                       />
                     </TableCell>
@@ -379,30 +353,6 @@ export default function ProvidersPage() {
                           ))}
                         </SelectContent>
                       </Select>
-                    </TableCell>
-                    <TableCell className="p-2">
-                      <Input
-                        placeholder="Persona de contacto"
-                        value={formData.contactPerson}
-                        onChange={(e) => setFormData(prev => ({ ...prev, contactPerson: e.target.value }))}
-                        className="bg-gray-800 border-indigo-500/30 text-white text-sm h-8"
-                      />
-                    </TableCell>
-                    <TableCell className="p-2">
-                      <Input
-                        placeholder="Ciudad"
-                        value={formData.city}
-                        onChange={(e) => setFormData(prev => ({ ...prev, city: e.target.value }))}
-                        className="bg-gray-800 border-indigo-500/30 text-white text-sm h-8"
-                      />
-                    </TableCell>
-                    <TableCell className="p-2">
-                      <Input
-                        placeholder="ej: 30 días"
-                        value={formData.paymentTerms}
-                        onChange={(e) => setFormData(prev => ({ ...prev, paymentTerms: e.target.value }))}
-                        className="bg-gray-800 border-indigo-500/30 text-white text-sm h-8"
-                      />
                     </TableCell>
                     <TableCell className="p-2">
                       <Select value={formData.status} onValueChange={(value: any) => setFormData(prev => ({ ...prev, status: value }))}>
@@ -437,15 +387,15 @@ export default function ProvidersPage() {
                       <TableCell className="p-3">
                         {isEditing ? (
                           <Input
-                            value={formData.company}
-                            onChange={(e) => setFormData(prev => ({ ...prev, company: e.target.value }))}
+                            value={formData.name}
+                            onChange={(e) => setFormData(prev => ({ ...prev, name: e.target.value }))}
                             className="bg-gray-800 border-blue-500/30 text-white text-sm h-8"
                           />
                         ) : (
                           <div>
-                            <div className="text-white text-sm font-medium">{provider.company}</div>
-                            {provider.name !== provider.company && (
-                              <div className="text-gray-400 text-xs">{provider.name}</div>
+                            <div className="text-white text-sm font-medium">{provider.name}</div>
+                            {provider.company !== provider.name && (
+                              <div className="text-gray-400 text-xs">{provider.company}</div>
                             )}
                           </div>
                         )}
@@ -465,12 +415,35 @@ export default function ProvidersPage() {
                       <TableCell className="p-3">
                         {isEditing ? (
                           <Input
-                            value={formData.phone}
-                            onChange={(e) => setFormData(prev => ({ ...prev, phone: e.target.value }))}
+                            value={formData.website}
+                            onChange={(e) => setFormData(prev => ({ ...prev, website: e.target.value }))}
                             className="bg-gray-800 border-blue-500/30 text-white text-sm h-8"
                           />
                         ) : (
-                          <span className="text-gray-300 text-sm">{provider.phone}</span>
+                          provider.website ? (
+                            <a 
+                              href={provider.website} 
+                              target="_blank" 
+                              rel="noopener noreferrer"
+                              className="flex items-center gap-1 text-blue-400 hover:text-blue-300 text-sm"
+                            >
+                              <ExternalLink className="h-3 w-3" />
+                              <span>Sitio web</span>
+                            </a>
+                          ) : (
+                            <span className="text-gray-500 text-sm">-</span>
+                          )
+                        )}
+                      </TableCell>
+                      <TableCell className="p-3">
+                        {isEditing ? (
+                          <Input
+                            value={formData.address}
+                            onChange={(e) => setFormData(prev => ({ ...prev, address: e.target.value }))}
+                            className="bg-gray-800 border-blue-500/30 text-white text-sm h-8"
+                          />
+                        ) : (
+                          <span className="text-gray-300 text-sm">{provider.address}</span>
                         )}
                       </TableCell>
                       <TableCell className="p-3">
@@ -487,51 +460,6 @@ export default function ProvidersPage() {
                           </Select>
                         ) : (
                           <Badge variant="outline" className="text-xs">{provider.category}</Badge>
-                        )}
-                      </TableCell>
-                      <TableCell className="p-3">
-                        {isEditing ? (
-                          <Input
-                            value={formData.contactPerson}
-                            onChange={(e) => setFormData(prev => ({ ...prev, contactPerson: e.target.value }))}
-                            className="bg-gray-800 border-blue-500/30 text-white text-sm h-8"
-                          />
-                        ) : (
-                          <span className="text-gray-300 text-sm">{provider.contactPerson || "-"}</span>
-                        )}
-                      </TableCell>
-                      <TableCell className="p-3">
-                        {isEditing ? (
-                          <div className="space-y-1">
-                            <Input
-                              value={formData.city}
-                              onChange={(e) => setFormData(prev => ({ ...prev, city: e.target.value }))}
-                              className="bg-gray-800 border-blue-500/30 text-white text-sm h-8"
-                              placeholder="Ciudad"
-                            />
-                            <Input
-                              value={formData.state}
-                              onChange={(e) => setFormData(prev => ({ ...prev, state: e.target.value }))}
-                              className="bg-gray-800 border-blue-500/30 text-white text-sm h-8"
-                              placeholder="Estado"
-                            />
-                          </div>
-                        ) : (
-                          <div className="text-gray-300 text-sm">
-                            <div>{provider.city}</div>
-                            <div className="text-gray-500 text-xs">{provider.state}</div>
-                          </div>
-                        )}
-                      </TableCell>
-                      <TableCell className="p-3">
-                        {isEditing ? (
-                          <Input
-                            value={formData.paymentTerms}
-                            onChange={(e) => setFormData(prev => ({ ...prev, paymentTerms: e.target.value }))}
-                            className="bg-gray-800 border-blue-500/30 text-white text-sm h-8"
-                          />
-                        ) : (
-                          <span className="text-gray-300 text-sm">{provider.paymentTerms || "-"}</span>
                         )}
                       </TableCell>
                       <TableCell className="p-3">{getStatusBadge(provider.status)}</TableCell>
