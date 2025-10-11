@@ -2,17 +2,21 @@ import { z } from "zod";
 
 const envSchema = z.object({
   NODE_ENV: z.enum(["development", "test", "production"]).default("development"),
-  NEXT_PUBLIC_APP_URL: z.string().url(),
+  NEXT_PUBLIC_APP_URL: z.string().url().optional().default("http://localhost:3000"),
   DATABASE_URL: z.string(),
   AUTH_SECRET: z.string().min(32),
-  STRIPE_SECRET_KEY: z.string().min(1),
-  STRIPE_WEBHOOK_SECRET: z.string().min(1),
-  FACTURALO_API_KEY: z.string().min(1),
-  FACTURALO_API_SECRET: z.string().min(1),
+  // Phase 2 - Billing (optional for Phase 1)
+  STRIPE_SECRET_KEY: z.string().optional(),
+  STRIPE_WEBHOOK_SECRET: z.string().optional(),
+  // Phase 3 - CFDI (optional for Phase 1)
+  FACTURALO_API_KEY: z.string().optional(),
+  FACTURALO_API_SECRET: z.string().optional(),
+  // Optional services
   UPSTASH_REDIS_URL: z.string().url().optional(),
   UPSTASH_REDIS_TOKEN: z.string().optional(),
   OPENAI_API_KEY: z.string().optional(),
   RESEND_API_KEY: z.string().optional(),
+  // Phase 1 - SMTP (required)
   SMTP_HOST: z.string().min(1),
   SMTP_PORT: z.coerce.number().default(465),
   SMTP_SECURE: z.coerce.boolean().default(true),
@@ -20,6 +24,7 @@ const envSchema = z.object({
   SMTP_PASSWORD: z.string().min(1),
   SMTP_FROM: z.string().optional(),
   LOCALE: z.string().default("es-MX"),
+  // Phase 1 - OTP (required)
   OTP_CODE_LENGTH: z.coerce.number().min(4).max(8).default(6),
   OTP_EXPIRATION_MINUTES: z.coerce.number().min(1).max(30).default(5),
   OTP_MAX_ATTEMPTS: z.coerce.number().min(1).max(10).default(5),

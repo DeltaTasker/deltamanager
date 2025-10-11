@@ -38,6 +38,7 @@ model Company {
   expenses         Expense[]
   payrolls         Payroll[]
   auditLogs        AuditLog[]
+  transactions     Transaction[]
 }
 
 model Role {
@@ -197,6 +198,28 @@ model AuditLog {
 
   user    User?    @relation(fields: [userId], references: [id])
   company Company? @relation(fields: [companyId], references: [id])
+}
+
+model Transaction {
+  id            String   @id @default(cuid())
+  companyId     String
+  type          String   @default("income") // "income" | "expense"
+  description   String
+  amount        Decimal
+  date          DateTime
+  category      String
+  clientName    String?
+  invoiceNumber String?
+  status        String   @default("pending")
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  company Company @relation(fields: [companyId], references: [id])
+
+  @@index([companyId])
+  @@index([type])
+  @@index([date])
+  @@index([category])
 }
 
 model AuthOtp {

@@ -46,8 +46,8 @@
 - Variables `.env.local` nuevas:
   - `SMTP_HOST=smtp.hostinger.com`
   - `SMTP_PORT=465`
-  - `SMTP_USER=contacto@deltatasker.com`
-  - `SMTP_PASSWORD=D3lT4-_-T4$k3R`
+  - `SMTP_USER=verify@deltatasker.com`
+  - `SMTP_PASSWORD=Delta.Tasker_2025`
   - `SMTP_SECURE=true`
 - Script de utilidad: `pnpm otp:cleanup` (opcional) para remover OTP expirados via Prisma script (`scripts/cleanup-otp.ts`).
 - Actualizar seed si requiere usuario demo con correo válido.
