@@ -882,6 +882,139 @@ export default function IncomePage() {
                   </TableRow>
                 )}
 
+                {/* Extended Fields Row - Proyecto y Facturación */}
+                {showNewForm && (
+                  <TableRow className="border-white/10 bg-blue-500/5">
+                    <TableCell colSpan={10} className="p-4">
+                      <div className="grid grid-cols-2 gap-4">
+                        {/* Columna 1: Datos de Proyecto */}
+                        <Card className="bg-slate-800/50 border-blue-500/30">
+                          <CardContent className="pt-4 space-y-3">
+                            <div className="flex items-center gap-2">
+                              <input
+                                type="checkbox"
+                                id="isProject"
+                                checked={formData.isProject}
+                                onChange={(e) => setFormData(prev => ({ ...prev, isProject: e.target.checked }))}
+                                className="w-4 h-4"
+                              />
+                              <Label htmlFor="isProject" className="text-white text-sm font-medium">
+                                ¿Es un Proyecto con Pagos Parciales?
+                              </Label>
+                            </div>
+                            
+                            {formData.isProject && (
+                              <>
+                                <div>
+                                  <Label className="text-gray-400 text-xs">Nombre del Proyecto</Label>
+                                  <Input
+                                    value={formData.projectName}
+                                    onChange={(e) => setFormData(prev => ({ ...prev, projectName: e.target.value }))}
+                                    placeholder="Ej: Implementación Sistema ERP"
+                                    className="bg-gray-800 border-blue-500/30 text-white text-sm mt-1"
+                                  />
+                                </div>
+                                <div>
+                                  <Label className="text-gray-400 text-xs">Número de Pagos</Label>
+                                  <Input
+                                    type="number"
+                                    min="2"
+                                    max="12"
+                                    value={formData.numberOfPayments}
+                                    onChange={(e) => setFormData(prev => ({ ...prev, numberOfPayments: e.target.value }))}
+                                    className="bg-gray-800 border-blue-500/30 text-white text-sm mt-1"
+                                  />
+                                  <p className="text-xs text-gray-500 mt-1">
+                                    {currentTotals && formData.numberOfPayments 
+                                      ? `${formData.numberOfPayments} pagos de ${formatCurrency(currentTotals.total / parseInt(formData.numberOfPayments))}`
+                                      : 'Ingresa cantidad para calcular'}
+                                  </p>
+                                </div>
+                              </>
+                            )}
+                          </CardContent>
+                        </Card>
+
+                        {/* Columna 2: Datos de Facturación */}
+                        <Card className="bg-slate-800/50 border-purple-500/30">
+                          <CardContent className="pt-4 space-y-3">
+                            <Label className="text-white text-sm font-medium">Datos de Facturación</Label>
+                            
+                            <div className="grid grid-cols-2 gap-2">
+                              <div>
+                                <Label className="text-gray-400 text-xs">Tipo de Comprobante</Label>
+                                <Select 
+                                  value={formData.invoiceType || "PUE"} 
+                                  onValueChange={(value: any) => {
+                                    setFormData(prev => ({ 
+                                      ...prev, 
+                                      invoiceType: value,
+                                      paymentMethod: value === "PPD" ? "Por Definir" : prev.paymentMethod,
+                                      paymentForm: value === "PPD" ? "99" : prev.paymentForm
+                                    }));
+                                  }}
+                                >
+                                  <SelectTrigger className="bg-gray-800 border-purple-500/30 text-white text-sm h-8 mt-1">
+                                    <SelectValue />
+                                  </SelectTrigger>
+                                  <SelectContent className="bg-gray-800 border-gray-600">
+                                    <SelectItem value="PUE" className="text-white">PUE - Pago en Una Exhibición</SelectItem>
+                                    <SelectItem value="PPD" className="text-white">PPD - Pago en Parcialidades</SelectItem>
+                                  </SelectContent>
+                                </Select>
+                              </div>
+
+                              <div>
+                                <Label className="text-gray-400 text-xs">Forma de Pago SAT</Label>
+                                <Select 
+                                  value={formData.paymentForm} 
+                                  onValueChange={(value) => setFormData(prev => ({ ...prev, paymentForm: value }))}
+                                >
+                                  <SelectTrigger className="bg-gray-800 border-purple-500/30 text-white text-sm h-8 mt-1">
+                                    <SelectValue />
+                                  </SelectTrigger>
+                                  <SelectContent className="bg-gray-800 border-gray-600">
+                                    <SelectItem value="01" className="text-white">01 - Efectivo</SelectItem>
+                                    <SelectItem value="02" className="text-white">02 - Cheque</SelectItem>
+                                    <SelectItem value="03" className="text-white">03 - Transferencia</SelectItem>
+                                    <SelectItem value="04" className="text-white">04 - Tarjeta de Crédito</SelectItem>
+                                    <SelectItem value="28" className="text-white">28 - Tarjeta de Débito</SelectItem>
+                                    <SelectItem value="99" className="text-white">99 - Por Definir</SelectItem>
+                                  </SelectContent>
+                                </Select>
+                              </div>
+                            </div>
+
+                            <div>
+                              <Label className="text-gray-400 text-xs">Método de Pago</Label>
+                              <Input
+                                value={formData.paymentMethod}
+                                onChange={(e) => setFormData(prev => ({ ...prev, paymentMethod: e.target.value }))}
+                                placeholder="Ej: Transferencia, Efectivo..."
+                                className="bg-gray-800 border-purple-500/30 text-white text-sm mt-1"
+                                disabled={formData.invoiceType === "PPD"}
+                              />
+                              {formData.invoiceType === "PPD" && (
+                                <p className="text-xs text-yellow-500 mt-1">PPD: Método se define al recibir cada pago</p>
+                              )}
+                            </div>
+
+                            <div>
+                              <Label className="text-gray-400 text-xs">Condiciones de Pago</Label>
+                              <Input
+                                value={formData.paymentConditions}
+                                onChange={(e) => setFormData(prev => ({ ...prev, paymentConditions: e.target.value }))}
+                                placeholder="Ej: Net 30, Inmediato..."
+                                className="bg-gray-800 border-purple-500/30 text-white text-sm mt-1"
+                              />
+                            </div>
+                          </CardContent>
+                        </Card>
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                )}
+
                 {/* Existing Transactions */}
                 {filteredTransactions.map((transaction) => (
                   <TableRow key={transaction.id} className="border-white/10 hover:bg-white/5">
