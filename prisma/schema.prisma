@@ -22,16 +22,16 @@ model User {
 }
 
 model Company {
-  id               String        @id @default(cuid())
+  id               String           @id @default(cuid())
   name             String
   rfc              String?
-  country          String        @default("MX")
-  timezone         String        @default("America/Mexico_City")
+  country          String           @default("MX")
+  timezone         String           @default("America/Mexico_City")
   facturaloApiKey  String?
   facturaloSecret  String?
   stripeCustomerId String?
-  createdAt        DateTime      @default(now())
-  updatedAt        DateTime      @updatedAt
+  createdAt        DateTime         @default(now())
+  updatedAt        DateTime         @updatedAt
   users            UserCompany[]
   subscriptions    Subscription?
   invoices         Invoice[]
@@ -39,6 +39,45 @@ model Company {
   payrolls         Payroll[]
   auditLogs        AuditLog[]
   transactions     Transaction[]
+  settings         CompanySettings?
+}
+
+model CompanySettings {
+  id        String   @id @default(cuid())
+  companyId String   @unique
+  
+  // General Settings
+  companyLegalName String?
+  companyRFC       String?
+  companyAddress   String?
+  companyPostalCode String?
+  companyPhone     String?
+  companyEmail     String?
+  companyWebsite   String?
+  companyLogoUrl   String? // URL o path al logo
+  
+  // Fiscal Settings (Emisor CFDI)
+  fiscalRegime     String? // Régimen Fiscal SAT
+  
+  // FacturaloPlus Settings (Encrypted)
+  facturaloApiKey  String?
+  facturaloCerPEM  String? // Certificado SAT en PEM
+  facturaloKeyPEM  String? // Llave privada SAT en PEM
+  facturaloKeyPass String? // Contraseña de la llave privada
+  
+  // Stripe Settings (Encrypted)
+  stripeSecretKey     String?
+  stripePublishableKey String?
+  stripeWebhookSecret String?
+  
+  // File Storage Settings
+  uploadMaxSize    Int?    @default(10485760) // 10MB default
+  allowedFileTypes String? @default("pdf,xml,zip,jpg,jpeg,png")
+  
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  
+  company Company @relation(fields: [companyId], references: [id], onDelete: Cascade)
 }
 
 model Role {
