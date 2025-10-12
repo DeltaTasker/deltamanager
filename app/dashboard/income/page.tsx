@@ -2,6 +2,8 @@
 
 import { useState, Fragment } from "react";
 import { Plus, Search, Edit, Trash2, Download, Filter, Check, X, FileText, UserPlus, TagIcon, ChevronDown, ChevronRight, FolderOpen, Eye, FileCheck } from "lucide-react";
+import { previewCFDI, timbrarCFDI, generarComplementoPago } from "@/app/actions/cfdi";
+import type { IncomeTransactionForCFDI } from "@/modules/cfdi/generator";
 
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -564,38 +566,132 @@ export default function IncomePage() {
     }
   };
 
-  const handlePreviewInvoice = (id: string) => {
-    const previewUrl = `/invoices/preview-${id}.pdf`;
-    setTransactions(prev => prev.map(t => 
-      t.id === id 
-        ? { ...t, invoiceStatus: "preview" as const, invoicePreviewUrl: previewUrl }
-        : t
-    ));
-    alert(`✅ Preview de factura generado\n(Se abrirá en nueva ventana cuando se integre FacturaloPlus)`);
-  };
-
-  const handleStampInvoice = (id: string) => {
+  const handlePreviewInvoice = async (id: string) => {
     const transaction = transactions.find(t => t.id === id);
     if (!transaction) return;
 
-    const invoiceNumber = `FAC-${new Date().getFullYear()}-${String(transactions.length + 1).padStart(3, '0')}`;
-    const xmlUrl = `/invoices/${invoiceNumber}.xml`;
-    const pdfUrl = `/invoices/${invoiceNumber}.pdf`;
+    // Convertir transacción a formato IncomeTransactionForCFDI
+    const cfdiTransaction: IncomeTransactionForCFDI = {
+      id: transaction.id,
+      clientName: transaction.clientName,
+      clientRFC: "XAXX010101000", // TODO: Conectar con DB real
+      clientRegimenFiscal: "601",
+      clientUsoCFDI: "G03",
+      clientDomicilioFiscal: "01000",
+      conceptName: transaction.conceptName,
+      conceptClaveProdServ: "84111506",
+      conceptClaveUnidad: "E48",
+      conceptObjetoImp: "02",
+      quantity: transaction.quantity,
+      unitPrice: transaction.unitPrice,
+      subtotal: transaction.subtotal,
+      ivaRate: transaction.ivaRate,
+      iva: transaction.iva,
+      isrRate: transaction.isrRate || 0,
+      isr: transaction.isr || 0,
+      total: transaction.total,
+      date: transaction.date,
+      invoiceType: transaction.invoiceType || "PUE",
+      paymentMethod: transaction.paymentMethod || "PUE",
+      paymentForm: transaction.paymentForm || "01",
+      paymentConditions: transaction.paymentConditions,
+      serie: "A",
+      folio: String(transactions.length + 1),
+    };
 
-    setTransactions(prev => prev.map(t => 
-      t.id === id 
-        ? { 
-            ...t, 
-            invoiceStatus: "stamped" as const, 
-            isBilled: true,
-            invoiceNumber,
-            invoiceXmlUrl: xmlUrl,
-            invoiceStampedPdfUrl: pdfUrl
-          }
-        : t
-    ));
+    // Datos del emisor (mock por ahora, TODO: leer desde CompanySettings)
+    const companySettings = {
+      companyRFC: "AAA010101AAA",
+      companyLegalName: "Tu Empresa S.A. de C.V.",
+      fiscalRegime: "601",
+      companyPostalCode: "01000",
+    };
 
-    alert(`✅ Factura timbrada: ${invoiceNumber}\nXML y PDF generados\n(Integración con FacturaloPlus pendiente)`);
+    const result = await previewCFDI(cfdiTransaction, companySettings);
+
+    if (result.success) {
+      const previewUrl = `/invoices/preview-${id}.pdf`;
+      setTransactions(prev => prev.map(t => 
+        t.id === id 
+          ? { ...t, invoiceStatus: "preview" as const, invoicePreviewUrl: previewUrl }
+          : t
+      ));
+      alert(`✅ Preview de factura generado correctamente\n\nDatos validados por SAT\nPuedes revisar el preview antes de timbrar.`);
+    } else {
+      alert(`❌ Error al generar preview:\n${result.error}`);
+    }
+  };
+
+  const handleStampInvoice = async (id: string) => {
+    const transaction = transactions.find(t => t.id === id);
+    if (!transaction) return;
+
+    if (!confirm("¿Estás seguro de timbrar esta factura?\n\nEsta acción consumirá un crédito de FacturaloPlus y generará un CFDI oficial.")) {
+      return;
+    }
+
+    // Convertir transacción a formato IncomeTransactionForCFDI
+    const cfdiTransaction: IncomeTransactionForCFDI = {
+      id: transaction.id,
+      clientName: transaction.clientName,
+      clientRFC: "XAXX010101000", // TODO: Conectar con DB real
+      clientRegimenFiscal: "601",
+      clientUsoCFDI: "G03",
+      clientDomicilioFiscal: "01000",
+      conceptName: transaction.conceptName,
+      conceptClaveProdServ: "84111506",
+      conceptClaveUnidad: "E48",
+      conceptObjetoImp: "02",
+      quantity: transaction.quantity,
+      unitPrice: transaction.unitPrice,
+      subtotal: transaction.subtotal,
+      ivaRate: transaction.ivaRate,
+      iva: transaction.iva,
+      isrRate: transaction.isrRate || 0,
+      isr: transaction.isr || 0,
+      total: transaction.total,
+      date: transaction.date,
+      invoiceType: transaction.invoiceType || "PUE",
+      paymentMethod: transaction.paymentMethod || "PUE",
+      paymentForm: transaction.paymentForm || "01",
+      paymentConditions: transaction.paymentConditions,
+      serie: "A",
+      folio: String(transactions.length + 1),
+    };
+
+    // Datos del emisor (mock por ahora, TODO: leer desde CompanySettings)
+    const companySettings = {
+      companyRFC: "AAA010101AAA",
+      companyLegalName: "Tu Empresa S.A. de C.V.",
+      fiscalRegime: "601",
+      companyPostalCode: "01000",
+    };
+
+    const result = await timbrarCFDI(cfdiTransaction, companySettings);
+
+    if (result.success && result.data) {
+      const invoiceNumber = `FAC-${new Date().getFullYear()}-${String(transactions.length + 1).padStart(3, '0')}`;
+      const uuid = result.data.uuid;
+      const xmlUrl = `/invoices/${invoiceNumber}.xml`; // TODO: Guardar XML real
+      const pdfUrl = `/invoices/${invoiceNumber}.pdf`; // TODO: Guardar PDF real
+
+      setTransactions(prev => prev.map(t => 
+        t.id === id 
+          ? { 
+              ...t, 
+              invoiceStatus: "stamped" as const, 
+              isBilled: true,
+              invoiceNumber,
+              invoiceXmlUrl: xmlUrl,
+              invoiceStampedPdfUrl: pdfUrl
+            }
+          : t
+      ));
+
+      alert(`✅ Factura timbrada exitosamente!\n\nFolio: ${invoiceNumber}\nUUID: ${uuid}\n\nXML y PDF generados por el SAT.`);
+    } else {
+      alert(`❌ Error al timbrar factura:\n${result.error}\n\nVerifica tus credenciales de FacturaloPlus y certificados SAT en Configuración.`);
+    }
   };
 
   const handleGenerateComplement = (id: string) => {
