@@ -25,6 +25,7 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { FilePreviewModal } from "@/components/ui/file-preview-modal";
 import { PeriodFilter, type PeriodValue } from "@/components/ui/period-filter";
+import { FileUpload, type UploadedFile } from "@/components/ui/file-upload";
 
 // Types
 type Provider = {
@@ -132,6 +133,10 @@ export default function ExpensesPage() {
   const [providerSearch, setProviderSearch] = useState("");
   const [employeeSearch, setEmployeeSearch] = useState("");
   
+  // File upload state
+  const [paymentProofFiles, setPaymentProofFiles] = useState<UploadedFile[]>([]);
+  const [invoiceFiles, setInvoiceFiles] = useState<UploadedFile[]>([]);
+  
   // File preview state
   const [previewFiles, setPreviewFiles] = useState<string[]>([]);
   const [previewTitle, setPreviewTitle] = useState("");
@@ -196,6 +201,8 @@ export default function ExpensesPage() {
     });
     setProviderSearch("");
     setEmployeeSearch("");
+    setPaymentProofFiles([]);
+    setInvoiceFiles([]);
   };
 
   const handleEmployeeChange = (employeeId: string) => {
@@ -249,7 +256,7 @@ export default function ExpensesPage() {
     }));
   };
 
-  const handleCreate = () => {
+  const handleCreate = async () => {
     if (!formData.amount || (!formData.providerId && !formData.employeeId)) {
       alert("Por favor completa los campos obligatorios");
       return;
@@ -257,6 +264,11 @@ export default function ExpensesPage() {
 
     const provider = providers.find(p => p.id === formData.providerId);
     const employee = employees.find(e => e.id === formData.employeeId);
+
+    // TODO: En producción, subir archivos al servidor usando uploadMultipleFiles
+    // Por ahora, simulamos las URLs con los nombres de archivo
+    const paymentProofUrls = paymentProofFiles.map(f => `/uploads/proofs/${f.file.name}`);
+    const invoiceUrls = invoiceFiles.map(f => `/uploads/invoices/${f.file.name}`);
 
     const newTransaction: ExpenseTransaction = {
       id: Date.now().toString(),
@@ -270,8 +282,8 @@ export default function ExpensesPage() {
       date: formData.date,
       hoursWorked: formData.hoursWorked ? parseFloat(formData.hoursWorked) : undefined,
       hourlyRate: employee?.salaryPeriod === "hourly" ? employee.salary : undefined,
-      paymentProofFiles: formData.paymentProofFiles,
-      invoiceFiles: formData.invoiceFiles,
+      paymentProofFiles: paymentProofUrls,
+      invoiceFiles: invoiceUrls,
       status: formData.status
     };
 
@@ -622,6 +634,44 @@ export default function ExpensesPage() {
                         <Button size="sm" variant="ghost" onClick={() => { setShowNewForm(false); resetForm(); }} className="h-8 text-red-400 hover:bg-red-500/10">
                           <X className="h-4 w-4" />
                         </Button>
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                )}
+                
+                {/* Fila adicional para uploads de archivos */}
+                {showNewForm && (
+                  <TableRow className="border-white/10 bg-orange-500/5">
+                    <TableCell colSpan={hasHourlyPayments ? 9 : 8} className="p-4">
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                          <Label className="text-white mb-2 block">Comprobantes de Pago</Label>
+                          <FileUpload
+                            label="Subir comprobantes de pago"
+                            accept="image/*,application/pdf"
+                            multiple
+                            maxSize={10}
+                            files={paymentProofFiles}
+                            onChange={(files) => {
+                              setPaymentProofFiles(files);
+                              // Auto-marcar como pagado si sube comprobante
+                              if (files.length > 0) {
+                                setFormData(prev => ({ ...prev, status: "paid" }));
+                              }
+                            }}
+                          />
+                        </div>
+                        <div>
+                          <Label className="text-white mb-2 block">Facturas (PDF, XML, ZIP)</Label>
+                          <FileUpload
+                            label="Subir facturas"
+                            accept="application/pdf,application/xml,text/xml,application/zip"
+                            multiple
+                            maxSize={10}
+                            files={invoiceFiles}
+                            onChange={setInvoiceFiles}
+                          />
+                        </div>
                       </div>
                     </TableCell>
                   </TableRow>
