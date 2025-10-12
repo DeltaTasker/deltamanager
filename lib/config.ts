@@ -10,7 +10,9 @@ const envSchema = z.object({
   STRIPE_WEBHOOK_SECRET: z.string().optional(),
   // Phase 3 - CFDI (optional for Phase 1)
   FACTURALO_API_KEY: z.string().optional(),
-  FACTURALO_API_SECRET: z.string().optional(),
+  FACTURALO_API_URL: z.string().url().optional().default("https://dev.facturaloplus.com"),
+  FACTURALO_CER_PEM: z.string().optional(), // Certificado SAT en formato PEM
+  FACTURALO_KEY_PEM: z.string().optional(), // Llave privada SAT en formato PEM
   // Optional services
   UPSTASH_REDIS_URL: z.string().url().optional(),
   UPSTASH_REDIS_TOKEN: z.string().optional(),
@@ -39,7 +41,9 @@ const env = envSchema.safeParse({
   STRIPE_SECRET_KEY: process.env.STRIPE_SECRET_KEY,
   STRIPE_WEBHOOK_SECRET: process.env.STRIPE_WEBHOOK_SECRET,
   FACTURALO_API_KEY: process.env.FACTURALO_API_KEY,
-  FACTURALO_API_SECRET: process.env.FACTURALO_API_SECRET,
+  FACTURALO_API_URL: process.env.FACTURALO_API_URL,
+  FACTURALO_CER_PEM: process.env.FACTURALO_CER_PEM,
+  FACTURALO_KEY_PEM: process.env.FACTURALO_KEY_PEM,
   UPSTASH_REDIS_URL: process.env.UPSTASH_REDIS_URL,
   UPSTASH_REDIS_TOKEN: process.env.UPSTASH_REDIS_TOKEN,
   OPENAI_API_KEY: process.env.OPENAI_API_KEY,
