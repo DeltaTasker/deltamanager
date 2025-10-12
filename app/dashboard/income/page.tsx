@@ -741,15 +741,16 @@ export default function IncomePage() {
             <Table>
               <TableHeader>
                 <TableRow className="border-white/10">
-                  <TableHead className="text-gray-400 w-[150px]">Fecha</TableHead>
-                  <TableHead className="text-gray-400 w-[200px]">Cliente</TableHead>
+                  <TableHead className="text-gray-400 w-[40px]"></TableHead>
+                  <TableHead className="text-gray-400 w-[120px]">Fecha</TableHead>
+                  <TableHead className="text-gray-400 w-[250px]">Cliente/Proyecto</TableHead>
                   <TableHead className="text-gray-400 w-[200px]">Concepto</TableHead>
                   <TableHead className="text-gray-400 w-[80px]">Cant.</TableHead>
                   <TableHead className="text-gray-400 w-[100px]">P. Unit.</TableHead>
                   <TableHead className="text-gray-400 w-[100px]">Subtotal</TableHead>
                   <TableHead className="text-gray-400 w-[100px]">IVA</TableHead>
-                  <TableHead className="text-gray-400 w-[100px]">Total</TableHead>
-                  <TableHead className="text-gray-400 w-[100px]">Estado</TableHead>
+                  <TableHead className="text-gray-400 w-[120px]">Total</TableHead>
+                  <TableHead className="text-gray-400 w-[120px]">Estado</TableHead>
                   <TableHead className="text-gray-400 w-[150px]">Acciones</TableHead>
                 </TableRow>
               </TableHeader>
@@ -757,6 +758,7 @@ export default function IncomePage() {
                 {/* New Form Row */}
                 {showNewForm && (
                   <TableRow className="border-white/10 bg-blue-500/5">
+                    <TableCell className="p-2 w-[40px]"></TableCell>
                     <TableCell className="p-2">
                       <Input
                         type="date"
@@ -1015,59 +1017,223 @@ export default function IncomePage() {
                   </TableRow>
                 )}
 
-                {/* Existing Transactions */}
+                {/* Existing Transactions with Accordion */}
                 {filteredTransactions.map((transaction) => (
-                  <TableRow key={transaction.id} className="border-white/10 hover:bg-white/5">
-                    <TableCell className="p-3 text-gray-300 text-sm">{formatDate(transaction.date)}</TableCell>
-                    <TableCell className="p-3">
-                      <div className="text-white font-medium text-sm">{transaction.clientName}</div>
-                    </TableCell>
-                    <TableCell className="p-3 text-gray-300 text-sm">{transaction.conceptName}</TableCell>
-                    <TableCell className="p-3 text-white text-sm text-center">{transaction.quantity}</TableCell>
-                    <TableCell className="p-3 text-white text-sm">{formatCurrency(transaction.unitPrice)}</TableCell>
-                    <TableCell className="p-3 text-white text-sm">{formatCurrency(transaction.subtotal)}</TableCell>
-                    <TableCell className="p-3 text-green-400 text-sm">+{formatCurrency(transaction.iva)}</TableCell>
-                    <TableCell className="p-3 text-white font-semibold text-sm">{formatCurrency(transaction.total)}</TableCell>
-                    <TableCell className="p-3">
-                      <div className="space-y-1">
-                        {getStatusBadge(transaction.status)}
-                        {transaction.isBilled && (
-                          <div className="text-xs text-blue-400">{transaction.invoiceNumber}</div>
+                  <Fragment key={transaction.id}>
+                    {/* Main Transaction Row */}
+                    <TableRow 
+                      className={`border-white/10 hover:bg-white/5 ${transaction.isProject ? 'cursor-pointer' : ''}`}
+                      onClick={() => transaction.isProject && toggleProject(transaction.id)}
+                    >
+                      {/* Columna expandir/contraer */}
+                      <TableCell className="p-3 w-[40px]">
+                        {transaction.isProject && (
+                          <div className="text-gray-400">
+                            {expandedProjects.has(transaction.id) ? (
+                              <ChevronDown className="h-4 w-4" />
+                            ) : (
+                              <ChevronRight className="h-4 w-4" />
+                            )}
+                          </div>
                         )}
-                      </div>
-                    </TableCell>
-                    <TableCell className="p-3">
-                      <div className="flex items-center gap-1">
-                        {!transaction.isBilled && (
+                      </TableCell>
+
+                      <TableCell className="p-3 text-gray-300 text-sm">{formatDate(transaction.date)}</TableCell>
+                      
+                      <TableCell className="p-3">
+                        <div className="space-y-1">
+                          <div className="flex items-center gap-2">
+                            {transaction.isProject && <FolderOpen className="h-4 w-4 text-blue-400" />}
+                            <div className="text-white font-medium text-sm">
+                              {transaction.isProject ? transaction.projectName : transaction.clientName}
+                            </div>
+                          </div>
+                          {/* Segunda línea: Datos fiscales */}
+                          <div className="text-xs text-gray-500">
+                            {transaction.invoiceType && (
+                              <>
+                                <span className={transaction.invoiceType === "PPD" ? "text-yellow-400" : "text-green-400"}>
+                                  {transaction.invoiceType}
+                                </span>
+                                {' • '}
+                                {transaction.paymentMethod}
+                                {' • '}
+                                Forma: {transaction.paymentForm}
+                                {transaction.paymentConditions && (
+                                  <>
+                                    {' • '}
+                                    {transaction.paymentConditions}
+                                  </>
+                                )}
+                              </>
+                            )}
+                          </div>
+                        </div>
+                      </TableCell>
+
+                      <TableCell className="p-3">
+                        <div className="text-gray-300 text-sm">{transaction.conceptName}</div>
+                        {transaction.isProject && (
+                          <div className="text-xs text-blue-400">
+                            {transaction.numberOfPayments} pagos • {formatCurrency(transaction.total / (transaction.numberOfPayments || 1))}/pago
+                          </div>
+                        )}
+                      </TableCell>
+
+                      <TableCell className="p-3 text-white text-sm text-center">{transaction.quantity}</TableCell>
+                      <TableCell className="p-3 text-white text-sm">{formatCurrency(transaction.unitPrice)}</TableCell>
+                      <TableCell className="p-3 text-white text-sm">{formatCurrency(transaction.subtotal)}</TableCell>
+                      <TableCell className="p-3 text-green-400 text-sm">+{formatCurrency(transaction.iva)}</TableCell>
+                      <TableCell className="p-3 text-white font-semibold text-sm">{formatCurrency(transaction.total)}</TableCell>
+                      
+                      <TableCell className="p-3">
+                        <div className="space-y-1">
+                          {getStatusBadge(transaction.status)}
+                          {transaction.invoiceNumber && (
+                            <div className="text-xs text-blue-400">{transaction.invoiceNumber}</div>
+                          )}
+                          {transaction.invoiceStatus === "preview" && (
+                            <Badge className="bg-yellow-500/20 text-yellow-500 text-xs">Preview</Badge>
+                          )}
+                          {transaction.invoiceStatus === "stamped" && (
+                            <Badge className="bg-green-500/20 text-green-500 text-xs">Timbrado</Badge>
+                          )}
+                        </div>
+                      </TableCell>
+                      
+                      <TableCell className="p-3">
+                        <div className="flex items-center gap-1">
+                          {/* Botón Preview */}
+                          {!transaction.isBilled && transaction.invoiceStatus === "pending" && (
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={(e) => { e.stopPropagation(); handlePreviewInvoice(transaction.id); }}
+                              className="h-8 text-blue-400 hover:bg-blue-500/10"
+                              title="Preview Factura"
+                            >
+                              <Eye className="h-4 w-4" />
+                            </Button>
+                          )}
+
+                          {/* Botón Timbrar */}
+                          {transaction.invoiceStatus === "preview" && (
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={(e) => { e.stopPropagation(); handleStampInvoice(transaction.id); }}
+                              className="h-8 text-green-400 hover:bg-green-500/10"
+                              title="Timbrar"
+                            >
+                              <FileCheck className="h-4 w-4" />
+                            </Button>
+                          )}
+
+                          {/* Botón Complemento (solo para PPD timbrados y pagados) */}
+                          {transaction.invoiceType === "PPD" && 
+                           transaction.invoiceStatus === "stamped" && 
+                           transaction.status === "received" && 
+                           !transaction.parentProjectId && (
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={(e) => { e.stopPropagation(); handleGenerateComplement(transaction.id); }}
+                              className="h-8 text-purple-400 hover:bg-purple-500/10"
+                              title="Complemento de Pago"
+                            >
+                              <FileText className="h-4 w-4" />
+                            </Button>
+                          )}
+
                           <Button
                             variant="ghost"
                             size="sm"
-                            onClick={() => handleBill(transaction.id)}
-                            className="h-8 text-green-400 hover:bg-green-500/10"
-                            title="Facturar"
+                            onClick={(e) => { e.stopPropagation(); handleDelete(transaction.id); }}
+                            className="h-8 text-red-400 hover:bg-red-500/10"
+                            title="Eliminar"
                           >
-                            <FileText className="h-4 w-4" />
+                            <Trash2 className="h-4 w-4" />
                           </Button>
-                        )}
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => handleStartEdit(transaction)}
-                          className="h-8 text-blue-400 hover:bg-blue-500/10"
-                        >
-                          <Edit className="h-4 w-4" />
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => handleDelete(transaction.id)}
-                          className="h-8 text-red-400 hover:bg-red-500/10"
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
-                      </div>
-                    </TableCell>
-                  </TableRow>
+                        </div>
+                      </TableCell>
+                    </TableRow>
+
+                    {/* Pagos Parciales (si el proyecto está expandido) */}
+                    {transaction.isProject && expandedProjects.has(transaction.id) && (
+                      <>
+                        {getProjectPayments(transaction.id).map((payment) => (
+                          <TableRow 
+                            key={payment.id} 
+                            className="border-white/10 bg-slate-800/40 hover:bg-slate-800/60"
+                          >
+                            {/* Sangría visual */}
+                            <TableCell className="p-3 w-[40px]"></TableCell>
+                            <TableCell className="p-3 pl-12 text-gray-400 text-sm">
+                              {formatDate(payment.date)}
+                            </TableCell>
+                            
+                            <TableCell className="p-3 pl-12">
+                              <div className="space-y-1">
+                                <div className="text-gray-300 text-sm flex items-center gap-2">
+                                  <span className="text-xs bg-blue-500/20 text-blue-400 px-2 py-0.5 rounded">
+                                    Pago {payment.paymentNumber}/{transaction.numberOfPayments}
+                                  </span>
+                                  {payment.clientName}
+                                </div>
+                                {/* Segunda línea: Datos fiscales del pago parcial */}
+                                <div className="text-xs text-gray-500">
+                                  {payment.paymentMethod !== "Por Definir" ? (
+                                    <>
+                                      {payment.paymentMethod}
+                                      {' • '}
+                                      Forma: {payment.paymentForm}
+                                    </>
+                                  ) : (
+                                    <span className="text-yellow-500">Método de pago pendiente</span>
+                                  )}
+                                </div>
+                              </div>
+                            </TableCell>
+
+                            <TableCell className="p-3 pl-12 text-gray-400 text-sm">{payment.conceptName}</TableCell>
+                            <TableCell className="p-3 text-gray-300 text-sm text-center">{payment.quantity.toFixed(2)}</TableCell>
+                            <TableCell className="p-3 text-gray-300 text-sm">{formatCurrency(payment.unitPrice)}</TableCell>
+                            <TableCell className="p-3 text-gray-300 text-sm">{formatCurrency(payment.subtotal)}</TableCell>
+                            <TableCell className="p-3 text-green-400 text-sm">+{formatCurrency(payment.iva)}</TableCell>
+                            <TableCell className="p-3 text-white font-semibold text-sm">{formatCurrency(payment.total)}</TableCell>
+                            
+                            <TableCell className="p-3">
+                              <div className="space-y-1">
+                                {getStatusBadge(payment.status)}
+                                {payment.paymentComplements && payment.paymentComplements.length > 0 && (
+                                  <div className="text-xs text-purple-400">
+                                    {payment.paymentComplements.length} complemento(s)
+                                  </div>
+                                )}
+                              </div>
+                            </TableCell>
+                            
+                            <TableCell className="p-3">
+                              <div className="flex items-center gap-1">
+                                {/* Botón Complemento para pago parcial */}
+                                {payment.status === "received" && transaction.invoiceStatus === "stamped" && (
+                                  <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    onClick={() => handleGenerateComplement(payment.id)}
+                                    className="h-8 text-purple-400 hover:bg-purple-500/10"
+                                    title="Complemento de Pago"
+                                  >
+                                    <FileText className="h-4 w-4" />
+                                  </Button>
+                                )}
+                              </div>
+                            </TableCell>
+                          </TableRow>
+                        ))}
+                      </>
+                    )}
+                  </Fragment>
                 ))}
               </TableBody>
             </Table>
