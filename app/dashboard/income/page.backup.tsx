@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, Fragment } from "react";
+import { useState } from "react";
 import { Plus, Search, Edit, Trash2, Download, Filter, Check, X, FileText, UserPlus, TagIcon, ChevronDown, ChevronRight, FolderOpen, Eye, FileCheck } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
@@ -359,14 +359,7 @@ export default function IncomePage() {
       quantity: "1",
       unitPrice: "",
       date: new Date().toISOString().split('T')[0],
-      status: "pending",
-      isProject: false,
-      projectName: "",
-      numberOfPayments: "1",
-      invoiceType: null,
-      paymentMethod: "Por Definir",
-      paymentForm: "99",
-      paymentConditions: ""
+      status: "pending"
     });
     setClientSearch("");
     setConceptSearch("");
