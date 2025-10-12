@@ -24,6 +24,7 @@ import {
 } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { FilePreviewModal } from "@/components/ui/file-preview-modal";
+import { PeriodFilter, type PeriodValue } from "@/components/ui/period-filter";
 
 // Types
 type Provider = {
@@ -106,6 +107,11 @@ export default function ExpensesPage() {
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedStatus, setSelectedStatus] = useState("all");
   const [selectedPaymentType, setSelectedPaymentType] = useState("all"); // Nuevo filtro
+  const [selectedPeriod, setSelectedPeriod] = useState<PeriodValue>("Mes");
+  const [customDateRange, setCustomDateRange] = useState<{ from: Date | undefined; to: Date | undefined }>({
+    from: undefined,
+    to: undefined,
+  });
   const [editingId, setEditingId] = useState<string | null>(null);
   const [showNewForm, setShowNewForm] = useState(false);
   
@@ -321,12 +327,20 @@ export default function ExpensesPage() {
           <h1 className="text-3xl font-bold text-white">Pagos (Egresos)</h1>
           <p className="text-sm text-gray-400">Gestión de pagos a proveedores y empleados</p>
         </div>
-        <Button 
-          onClick={() => setShowNewForm(!showNewForm)}
-          className="bg-gradient-to-r from-orange-500 to-red-600 text-white hover:from-orange-600 hover:to-red-700"
-        >
-          {showNewForm ? <><X className="mr-2 h-4 w-4" /> Cancelar</> : <><Plus className="mr-2 h-4 w-4" /> Nuevo Pago</>}
-        </Button>
+        <div className="flex items-center gap-3">
+          <PeriodFilter
+            selectedPeriod={selectedPeriod}
+            onPeriodChange={setSelectedPeriod}
+            customDateRange={customDateRange}
+            onCustomDateRangeChange={setCustomDateRange}
+          />
+          <Button 
+            onClick={() => setShowNewForm(!showNewForm)}
+            className="bg-gradient-to-r from-orange-500 to-red-600 text-white hover:from-orange-600 hover:to-red-700"
+          >
+            {showNewForm ? <><X className="mr-2 h-4 w-4" /> Cancelar</> : <><Plus className="mr-2 h-4 w-4" /> Nuevo Pago</>}
+          </Button>
+        </div>
       </div>
 
       {/* Stats */}

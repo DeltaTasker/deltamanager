@@ -23,6 +23,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
+import { PeriodFilter, type PeriodValue } from "@/components/ui/period-filter";
 
 // Types
 type Client = {
@@ -270,6 +271,11 @@ export default function IncomePage() {
   const [transactions, setTransactions] = useState<IncomeTransaction[]>(mockIncomeData);
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedStatus, setSelectedStatus] = useState("all");
+  const [selectedPeriod, setSelectedPeriod] = useState<PeriodValue>("Mes");
+  const [customDateRange, setCustomDateRange] = useState<{ from: Date | undefined; to: Date | undefined }>({
+    from: undefined,
+    to: undefined,
+  });
   const [editingId, setEditingId] = useState<string | null>(null);
   const [showNewForm, setShowNewForm] = useState(false);
   const [expandedProjects, setExpandedProjects] = useState<Set<string>>(new Set());
@@ -659,12 +665,20 @@ export default function IncomePage() {
           <h1 className="text-3xl font-bold text-white">Cobranza</h1>
           <p className="text-sm text-gray-400">Gestión de ingresos con datos fiscales integrados</p>
         </div>
-        <Button 
-          onClick={() => setShowNewForm(!showNewForm)}
-          className="bg-gradient-to-r from-blue-500 to-purple-600 text-white hover:from-blue-600 hover:to-purple-700"
-        >
-          {showNewForm ? <><X className="mr-2 h-4 w-4" /> Cancelar</> : <><Plus className="mr-2 h-4 w-4" /> Nuevo Cobro</>}
-        </Button>
+        <div className="flex items-center gap-3">
+          <PeriodFilter
+            selectedPeriod={selectedPeriod}
+            onPeriodChange={setSelectedPeriod}
+            customDateRange={customDateRange}
+            onCustomDateRangeChange={setCustomDateRange}
+          />
+          <Button 
+            onClick={() => setShowNewForm(!showNewForm)}
+            className="bg-gradient-to-r from-blue-500 to-purple-600 text-white hover:from-blue-600 hover:to-purple-700"
+          >
+            {showNewForm ? <><X className="mr-2 h-4 w-4" /> Cancelar</> : <><Plus className="mr-2 h-4 w-4" /> Nuevo Cobro</>}
+          </Button>
+        </div>
       </div>
 
       {/* Stats */}

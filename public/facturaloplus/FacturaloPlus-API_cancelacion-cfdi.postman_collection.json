@@ -1,0 +1,294 @@
+{
+	"info": {
+		"_postman_id": "ca0c50f7-e658-4f28-8633-52744f8013c7",
+		"name": "FacturaloPlus-API_cancelacion-cfdi",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+	},
+	"item": [
+		{
+			"name": "cancelar2",
+			"request": {
+				"method": "POST",
+				"header": [],
+				"body": {
+					"mode": "urlencoded",
+					"urlencoded": [
+						{
+							"key": "apikey",
+							"value": "93edc4af66b84c938f66a56ca0596205",
+							"type": "text"
+						},
+						{
+							"key": "keyCSD",
+							"value": "MIIFDjBABgkqhkiG9w0BBQ0wMzAbBgkqhkiG9w0BBQwwDgQIAgEAAoIBAQACAggAMBQGCCqGSIb3DQMHBAgwggS/AgEAMASCBMh4EHl7aNSCaMDA1VlRoXCZ5UUmqErAbucoZQObOaLUEm+I+QZ7Y8Giupo+F1XWkLvAsdk/uZlJcTfKLJyJbJwsQYbSpLOCLataZ4O5MVnnmMbfG//NKJn9kSMvJQZhSwAwoGLYDm1ESGezrvZabgFJnoQv8Si1nAhVGTk9FkFBesxRzq07dmZYwFCnFSX4xt2fDHs1PMpQbeq83aL/PzLCce3kxbYSB5kQlzGtUYayiYXcu0cVRu228VwBLCD+2wTDDoCmRXtPesgrLKUR4WWWb5N2AqAU1mNDC+UEYsENAerOFXWnmwrcTAu5qyZ7GsBMTpipW4Dbou2yqQ0lpA/aB06n1kz1aL6mNqGPaJ+OqoFuc8Ugdhadd+MmjHfFzoI20SZ3b2geCsUMNCsAd6oXMsZdWm8lzjqCGWHFeol0ik/xHMQvuQkkeCsQ28PBxdnUgf7ZGer+TN+2ZLd2kvTBOk6pIVgy5yC6cZ+o1Tloql9hYGa6rT3xcMbXlW+9e5jM2MWXZliVW3ZhaPjptJFDbIfWxJPjz4QvKyJk0zok4muv13Iiwj2bCyefUTRz6psqI4cGaYm9JpscKO2RCJN8UluYGbbWmYQU+Int6LtZj/lv8p6xnVjWxYI+rBPdtkpfFYRp+MJiXjgPw5B6UGuoruv7+vHjOLHOotRo+RdjZt7NqL9dAJnl1Qb2jfW6+d7NYQSI/bAwxO0sk4taQIT6Gsu/8kfZOPC2xk9rphGqCSS/4q3Os0MMjA1bcJLyoWLp13pqhK6bmiiHw0BBXH4fbEp4xjSbpPx4tHXzbdn8oDsHKZkWh3pPC2J/nVl0k/yF1KDVowVtMDXE47k6TGVcBoqe8PDXCG9+vjRpzIidqNo5qebaUZu6riWMWzldz8x3Z/jLWXuDiM7/Yscn0Z2GIlfoeyz+GwP2eTdOw9EUedHjEQuJY32bq8LICimJ4Ht+zMJKUyhwVQyAER8byzQBwTYmYP5U0wdsyIFitphw+/IH8+v08Ia1iBLPQAeAvRfTTIFLCs8foyUrj5Zv2B/wTYIZy6ioUM+qADeXyo45uBLLqkN90Rf6kiTqDld78NxwsfyR5MxtJLVDFkmf2IMMJHTqSfhbi+7QJaC11OOUJTD0v9wo0X/oO5GvZhe0ZaGHnm9zqTopALuFEAxcaQlc4R81wjC4wrIrqWnbcl2dxiBtD73KW+wcC9ymsLf4I8BEmiN25lx/OUc1IHNyXZJYSFkEfaxCEZWKcnbiyf5sqFSSlEqZLc4lUPJFAoP6s1FHVcyO0odWqdadhRZLZC9RCzQgPlMRtji/OXy5phh7diOBZv5UYp5nb+MZ2NAB/eFXm2JLguxjvEstuvTDmZDUb6Uqv++RdhO5gvKf/AcwU38ifaHQ9uvRuDocYwVxZS2nr9rOwZ8nAh+P2o4e0tEXjxFKQGhxXYkn75H3hhfnFYjik/2qunHBBZfcdG148MaNP6DjX33M238T9Zw/GyGx00JMogr2pdP4JAErv9a5yt4YR41KGf8guSOUbOXVARw6+ybh7+meb7w4BeTlj3aZkv8tVGdfIt3lrwVnlbzhLjeQY6PplKp3/a5Kr5yM0T4wJoKQQ6v3vSNmrhpbuAtKxpMILe8CQoo=",
+							"type": "text"
+						},
+						{
+							"key": "cerCSD",
+							"value": "MIIFsDCCA5igAwIBAgIUMzAwMDEwMDAwMDA1MDAwMDM0MTYwDQYJKoZIhvcNAQELBQAwggErMQ8wDQYDVQQDDAZBQyBVQVQxLjAsBgNVBAoMJVNFUlZJQ0lPIERFIEFETUlOSVNUUkFDSU9OIFRSSUJVVEFSSUExGjAYBgNVBAsMEVNBVC1JRVMgQXV0aG9yaXR5MSgwJgYJKoZIhvcNAQkBFhlvc2Nhci5tYXJ0aW5lekBzYXQuZ29iLm14MR0wGwYDVQQJDBQzcmEgY2VycmFkYSBkZSBjYWxpejEOMAwGA1UEEQwFMDYzNzAxCzAJBgNVBAYTAk1YMRkwFwYDVQQIDBBDSVVEQUQgREUgTUVYSUNPMREwDwYDVQQHDAhDT1lPQUNBTjERMA8GA1UELRMIMi41LjQuNDUxJTAjBgkqhkiG9w0BCQITFnJlc3BvbnNhYmxlOiBBQ0RNQS1TQVQwHhcNMjMwNTE4MTE0MzUxWhcNMjcwNTE4MTE0MzUxWjCB1zEnMCUGA1UEAxMeRVNDVUVMQSBLRU1QRVIgVVJHQVRFIFNBIERFIENWMScwJQYDVQQpEx5FU0NVRUxBIEtFTVBFUiBVUkdBVEUgU0EgREUgQ1YxJzAlBgNVBAoTHkVTQ1VFTEEgS0VNUEVSIFVSR0FURSBTQSBERSBDVjElMCMGA1UELRMcRUtVOTAwMzE3M0M5IC8gVkFEQTgwMDkyN0RKMzEeMBwGA1UEBRMVIC8gVkFEQTgwMDkyN0hTUlNSTDA1MRMwEQYDVQQLEwpTdWN1cnNhbCAxMIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAtmecO6n2GS0zL025gbHGQVxznPDICoXzR2uUngz4DqxVUC/w9cE6FxSiXm2ap8Gcjg7wmcZfm85EBaxCx/0J2u5CqnhzIoGCdhBPuhWQnIh5TLgj/X6uNquwZkKChbNe9aeFirU/JbyN7Egia9oKH9KZUsodiM/pWAH00PCtoKJ9OBcSHMq8Rqa3KKoBcfkg1ZrgueffwRLws9yOcRWLb02sDOPzGIm/jEFicVYt2Hw1qdRE5xmTZ7AGG0UHs+unkGjpCVeJ+BEBn0JPLWVvDKHZAQMj6s5Bku35+d/MyATkpOPsGT/VTnsouxekDfikJD1f7A1ZpJbqDpkJnss3vQIDAQABox0wGzAMBgNVHRMBAf8EAjAAMAsGA1UdDwQEAwIGwDANBgkqhkiG9w0BAQsFAAOCAgEAFaUgj5PqgvJigNMgtrdXZnbPfVBbukAbW4OGnUhNrA7SRAAfv2BSGk16PI0nBOr7qF2mItmBnjgEwk+DTv8Zr7w5qp7vleC6dIsZFNJoa6ZndrE/f7KO1CYruLXr5gwEkIyGfJ9NwyIagvHHMszzyHiSZIA850fWtbqtythpAliJ2jF35M5pNS+YTkRB+T6L/c6m00ymN3q9lT1rB03YywxrLreRSFZOSrbwWfg34EJbHfbFXpCSVYdJRfiVdvHnewN0r5fUlPtR9stQHyuqewzdkyb5jTTw02D2cUfL57vlPStBj7SEi3uOWvLrsiDnnCIxRMYJ2UA2ktDKHk+zWnsDmaeleSzonv2CHW42yXYPCvWi88oE1DJNYLNkIjua7MxAnkNZbScNw01A6zbLsZ3y8G6eEYnxSTRfwjd8EP4kdiHNJftm7Z4iRU7HOVh79/lRWB+gd171s3d/mI9kte3MRy6V8MMEMCAnMboGpaooYwgAmwclI2XZCczNWXfhaWe0ZS5PmytD/GDpXzkX0oEgY9K/uYo5V77NdZbGAjmyi8cE2B2ogvyaN2XfIInrZPgEffJ4AB7kFA2mwesdLOCh0BLD9itmCve3A1FGR4+stO2ANUoiI3w3Tv2yQSg4bjeDlJ08lXaaFCLW2peEXMXjQUk7fmpb5MNuOUTW6BE=",
+							"type": "text"
+						},
+						{
+							"key": "passCSD",
+							"value": "12345678a",
+							"type": "text"
+						},
+						{
+							"key": "uuid",
+							"value": "4b6b3e30-9f6c-4b11-9218-903cc9eeddcf",
+							"type": "text"
+						},
+						{
+							"key": "rfcEmisor",
+							"value": "EKU9003173C9",
+							"type": "text"
+						},
+						{
+							"key": "rfcReceptor",
+							"value": "XAXX010101000",
+							"type": "text"
+						},
+						{
+							"key": "total",
+							"value": "1.16",
+							"type": "text"
+						},
+						{
+							"key": "motivo",
+							"value": "02",
+							"type": "default"
+						}
+					]
+				},
+				"url": {
+					"raw": "https://dev.facturaloplus.com/api/rest/servicio/cancelar2",
+					"protocol": "https",
+					"host": [
+						"dev",
+						"facturaloplus",
+						"com"
+					],
+					"path": [
+						"api",
+						"rest",
+						"servicio",
+						"cancelar2"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "cancelarPFX2",
+			"request": {
+				"method": "POST",
+				"header": [],
+				"body": {
+					"mode": "urlencoded",
+					"urlencoded": [
+						{
+							"key": "apikey",
+							"value": "93edc4af66b84c938f66a56ca0596205",
+							"type": "text"
+						},
+						{
+							"key": "filePFX",
+							"value": "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",
+							"type": "text"
+						},
+						{
+							"key": "passPFX",
+							"value": "12345678b",
+							"type": "text"
+						},
+						{
+							"key": "uuid",
+							"value": "4b6b3e30-9f6c-4b11-9218-903cc9eeddcf",
+							"type": "text"
+						},
+						{
+							"key": "rfcEmisor",
+							"value": "EKU9003173C9",
+							"type": "text"
+						},
+						{
+							"key": "rfcReceptor",
+							"value": "XAXX010101000",
+							"type": "text"
+						},
+						{
+							"key": "motivo",
+							"value": "02",
+							"type": "default"
+						}
+					]
+				},
+				"url": {
+					"raw": "https://dev.facturaloplus.com/api/rest/servicio/cancelarPFX2",
+					"protocol": "https",
+					"host": [
+						"dev",
+						"facturaloplus",
+						"com"
+					],
+					"path": [
+						"api",
+						"rest",
+						"servicio",
+						"cancelarPFX2"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "consultarEstadoSAT",
+			"request": {
+				"method": "POST",
+				"header": [],
+				"body": {
+					"mode": "urlencoded",
+					"urlencoded": [
+						{
+							"key": "apikey",
+							"value": "93edc4af66b84c938f66a56ca0596205",
+							"type": "text"
+						},
+						{
+							"key": "uuid",
+							"value": "4b6b3e30-9f6c-4b11-9218-903cc9eeddcf",
+							"type": "text"
+						},
+						{
+							"key": "rfcEmisor",
+							"value": "EKU9003173C9",
+							"type": "text"
+						},
+						{
+							"key": "rfcReceptor",
+							"value": "XAXX010101000",
+							"type": "text"
+						},
+						{
+							"key": "total",
+							"value": "1.16",
+							"type": "text"
+						}
+					]
+				},
+				"url": {
+					"raw": "https://dev.facturaloplus.com/api/rest/servicio/consultarEstadoSAT",
+					"protocol": "https",
+					"host": [
+						"dev",
+						"facturaloplus",
+						"com"
+					],
+					"path": [
+						"api",
+						"rest",
+						"servicio",
+						"consultarEstadoSAT"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "consultarAutorizacionesPendientes",
+			"request": {
+				"method": "POST",
+				"header": [],
+				"body": {
+					"mode": "urlencoded",
+					"urlencoded": [
+						{
+							"key": "apikey",
+							"value": "93edc4af66b84c938f66a56ca0596205",
+							"type": "text"
+						},
+						{
+							"key": "keyPEM",
+							"value": "-----BEGIN PRIVATE KEY-----\nMIIEvAIBADANBgkqhkiG9w0BAQEFAASCBKYwggSiAgEAAoIBAQCN0peKpgfOL75i\nYRv1fqq+oVYsLPVUR/GibYmGKc9InHFy5lYF6OTYjnIIvmkOdRobbGlCUxORX/tL\nsl8Ya9gm6Yo7hHnODRBIDup3GISFzB/96R9K/MzYQOcscMIoBDARaycnLvy7FlMv\nO7/rlVnsSARxZRO8Kz8Zkksj2zpeYpjZIya/369+oGqQk1cTRkHo59JvJ4Tfbk/3\niIyf4H/Ini9nBe9cYWo0MnKob7DDt/vsdi5tA8mMtA953LapNyCZIDCRQQlUGNgD\nqY9/8F5mUvVgkcczsIgGdvf9vMQPSf3jjCiKj7j6ucxl1+FwJWmbvgNmiaUR/0q4\nm2rm78lFAgMBAAECggEAbYDO9YTgvfjrPTbRyam12F7mFFHaUusBzXJaHzclD2GL\nzzW98e4y1GqX7dxnbXxJXidE1qsijrrXY0kkV8zdJp5n1zCgg9JeYeTycGaD3HMR\nuJFJUjMDT249kHi30QH6w1hC8OQ8y4+fRvcRZqr4tZGdrJhotn+Fxw7H6bWZycmc\nizbv4Q+e5+tQpWeIKC5u6tChTdURdIULMGTbeuFK7bS9Q6KQu65TiBy9Z+d9Sg7B\n2FvaIGGOAxuyNNOaDf4ZC4+1uUJJMqOTXUVhfYwkcQMV/BXNK6uZuoBkL2uOvs9t\n+ULwYyY99rUsJvsgbmz0Agzi/0V5rRLJk/7+kz2bOQKBgQDKMs9TuJ6qXL36aB5v\nZ+ZaHuliA7j0q4Uiqoec/4tpddgr9O8InxfMnc/EGDBUw5P3iddIM2PM0vOnSGXw\n5ZYEfS03R+KrU4TLJIzcyWOLqjwqkZxTWTiMWRcwrWtVBxbxyQubMytAXdKmFCLh\nSISktfVltrhhDh80crw0ccdoQwKBgQCzjyY57iIRlxUOdqD4ynRmOC7iZgl554a1\nVRkUIk57IsOxBWae3mYkiAbCvGDijeqWO61oBRfN/xphnR9RECwtzCdCDTdMcUp4\ni33hHD/vafZRZP4BlNTcZC27B/6ixkdR9LddMtpAT4DUkELhcsn32P/3mzG3rFnL\nljJ+F9jT1wKBgBurKEPEl7GoTzbc2I1WImdio30OFVklv2om+7e4IFOmFJavRaZg\nXtlZHv0uci6nNLBC5Hq0zYtRspXJimmUgRrMJkvSQmo/W4SQ09XCmSSbfvA0TLf7\nFYnfBxVaJb3U4objg/sQ3XJJZHHlf4BkdAI2BAaPIlvlms+Kg8aJa0gRAoGAT/QH\n83ej1+1MRPpxxxZvKi0OQ2VoBs4fX5Ma7aoxBAeA18wt28Pv+4hOalvzUC4dLPQ5\nzL2n0eQr3RdXoILxCRuEx5aW7wTrQi3qyVgI6BRox+mOaSnadqBs9IEk01oy2716\nAJfqMwSzuvLZtQWmBSStJZYHV1/5Q/wHU7pOpFUCgYBVCgJQ9WboLqHpXl2A++wk\nzEnwSM4KDCRc25wAdZykFXf8uXEuIIZG4QsH56ljGrAoulJAGGV1qwqaYoHQzowV\nPDFfDEKYKLzT4MF0/kDsYgrnZka2HreLba0Ujwx4MjMDkeoAjbg/uW2jOgRgAHsY\nh0lBer2hP8NFqBPBBTNDwQ==\n-----END PRIVATE KEY-----",
+							"type": "text"
+						},
+						{
+							"key": "cerPEM",
+							"value": "-----BEGIN CERTIFICATE-----\nMIIFuzCCA6OgAwIBAgIUMzAwMDEwMDAwMDA0MDAwMDI0MzQwDQYJKoZIhvcNAQEL\nBQAwggErMQ8wDQYDVQQDDAZBQyBVQVQxLjAsBgNVBAoMJVNFUlZJQ0lPIERFIEFE\nTUlOSVNUUkFDSU9OIFRSSUJVVEFSSUExGjAYBgNVBAsMEVNBVC1JRVMgQXV0aG9y\naXR5MSgwJgYJKoZIhvcNAQkBFhlvc2Nhci5tYXJ0aW5lekBzYXQuZ29iLm14MR0w\nGwYDVQQJDBQzcmEgY2VycmFkYSBkZSBjYWRpejEOMAwGA1UEEQwFMDYzNzAxCzAJ\nBgNVBAYTAk1YMRkwFwYDVQQIDBBDSVVEQUQgREUgTUVYSUNPMREwDwYDVQQHDAhD\nT1lPQUNBTjERMA8GA1UELRMIMi41LjQuNDUxJTAjBgkqhkiG9w0BCQITFnJlc3Bv\nbnNhYmxlOiBBQ0RNQS1TQVQwHhcNMTkwNjE3MTk0NDE0WhcNMjMwNjE3MTk0NDE0\nWjCB4jEnMCUGA1UEAxMeRVNDVUVMQSBLRU1QRVIgVVJHQVRFIFNBIERFIENWMScw\nJQYDVQQpEx5FU0NVRUxBIEtFTVBFUiBVUkdBVEUgU0EgREUgQ1YxJzAlBgNVBAoT\nHkVTQ1VFTEEgS0VNUEVSIFVSR0FURSBTQSBERSBDVjElMCMGA1UELRMcRUtVOTAw\nMzE3M0M5IC8gWElRQjg5MTExNlFFNDEeMBwGA1UEBRMVIC8gWElRQjg5MTExNk1H\nUk1aUjA1MR4wHAYDVQQLExVFc2N1ZWxhIEtlbXBlciBVcmdhdGUwggEiMA0GCSqG\nSIb3DQEBAQUAA4IBDwAwggEKAoIBAQCN0peKpgfOL75iYRv1fqq+oVYsLPVUR/Gi\nbYmGKc9InHFy5lYF6OTYjnIIvmkOdRobbGlCUxORX/tLsl8Ya9gm6Yo7hHnODRBI\nDup3GISFzB/96R9K/MzYQOcscMIoBDARaycnLvy7FlMvO7/rlVnsSARxZRO8Kz8Z\nkksj2zpeYpjZIya/369+oGqQk1cTRkHo59JvJ4Tfbk/3iIyf4H/Ini9nBe9cYWo0\nMnKob7DDt/vsdi5tA8mMtA953LapNyCZIDCRQQlUGNgDqY9/8F5mUvVgkcczsIgG\ndvf9vMQPSf3jjCiKj7j6ucxl1+FwJWmbvgNmiaUR/0q4m2rm78lFAgMBAAGjHTAb\nMAwGA1UdEwEB/wQCMAAwCwYDVR0PBAQDAgbAMA0GCSqGSIb3DQEBCwUAA4ICAQBc\npj1TjT4jiinIujIdAlFzE6kRwYJCnDG08zSp4kSnShjxADGEXH2chehKMV0FY7c4\nnjA5eDGdA/G2OCTPvF5rpeCZP5Dw504RZkYDl2suRz+wa1sNBVpbnBJEK0fQcN3I\nftBwsgNFdFhUtCyw3lus1SSJbPxjLHS6FcZZ51YSeIfcNXOAuTqdimusaXq15GrS\nrCOkM6n2jfj2sMJYM2HXaXJ6rGTEgYmhYdwxWtil6RfZB+fGQ/H9I9WLnl4KTZUS\n6C9+NLHh4FPDhSk19fpS2S/56aqgFoGAkXAYt9Fy5ECaPcULIfJ1DEbsXKyRdCv3\nJY89+0MNkOdaDnsemS2o5Gl08zI4iYtt3L40gAZ60NPh31kVLnYNsmvfNxYyKp+A\neJtDHyW9w7ftM0Hoi+BuRmcAQSKFV3pk8j51la+jrRBrAUv8blbRcQ5BiZUwJzHF\nEKIwTsRGoRyEx96sNnB03n6GTwjIGz92SmLdNl95r9rkvp+2m4S6q1lPuXaFg7DG\nBrXWC8iyqeWE2iobdwIIuXPTMVqQb12m1dAkJVRO5NdHnP/MpqOvOgLqoZBNHGyB\ng4Gqm4sCJHCxA1c8Elfa2RQTCk0tAzllL4vOnI1GHkGJn65xokGsaU4B4D36xh7e\nWrfj4/pgWHmtoDAYa8wzSwo2GVCZOs+mtEgOQB91/g==\n-----END CERTIFICATE-----",
+							"type": "text"
+						}
+					]
+				},
+				"url": {
+					"raw": "https://dev.facturaloplus.com/api/rest/servicio/consultarAutorizacionesPendientes",
+					"protocol": "https",
+					"host": [
+						"dev",
+						"facturaloplus",
+						"com"
+					],
+					"path": [
+						"api",
+						"rest",
+						"servicio",
+						"consultarAutorizacionesPendientes"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "autorizarCancelacion",
+			"request": {
+				"method": "POST",
+				"header": [],
+				"body": {
+					"mode": "urlencoded",
+					"urlencoded": [
+						{
+							"key": "apikey",
+							"value": "93edc4af66b84c938f66a56ca0596205",
+							"type": "text"
+						},
+						{
+							"key": "keyPEM",
+							"value": "-----BEGIN PRIVATE KEY-----\nMIIEvAIBADANBgkqhkiG9w0BAQEFAASCBKYwggSiAgEAAoIBAQCN0peKpgfOL75i\nYRv1fqq+oVYsLPVUR/GibYmGKc9InHFy5lYF6OTYjnIIvmkOdRobbGlCUxORX/tL\nsl8Ya9gm6Yo7hHnODRBIDup3GISFzB/96R9K/MzYQOcscMIoBDARaycnLvy7FlMv\nO7/rlVnsSARxZRO8Kz8Zkksj2zpeYpjZIya/369+oGqQk1cTRkHo59JvJ4Tfbk/3\niIyf4H/Ini9nBe9cYWo0MnKob7DDt/vsdi5tA8mMtA953LapNyCZIDCRQQlUGNgD\nqY9/8F5mUvVgkcczsIgGdvf9vMQPSf3jjCiKj7j6ucxl1+FwJWmbvgNmiaUR/0q4\nm2rm78lFAgMBAAECggEAbYDO9YTgvfjrPTbRyam12F7mFFHaUusBzXJaHzclD2GL\nzzW98e4y1GqX7dxnbXxJXidE1qsijrrXY0kkV8zdJp5n1zCgg9JeYeTycGaD3HMR\nuJFJUjMDT249kHi30QH6w1hC8OQ8y4+fRvcRZqr4tZGdrJhotn+Fxw7H6bWZycmc\nizbv4Q+e5+tQpWeIKC5u6tChTdURdIULMGTbeuFK7bS9Q6KQu65TiBy9Z+d9Sg7B\n2FvaIGGOAxuyNNOaDf4ZC4+1uUJJMqOTXUVhfYwkcQMV/BXNK6uZuoBkL2uOvs9t\n+ULwYyY99rUsJvsgbmz0Agzi/0V5rRLJk/7+kz2bOQKBgQDKMs9TuJ6qXL36aB5v\nZ+ZaHuliA7j0q4Uiqoec/4tpddgr9O8InxfMnc/EGDBUw5P3iddIM2PM0vOnSGXw\n5ZYEfS03R+KrU4TLJIzcyWOLqjwqkZxTWTiMWRcwrWtVBxbxyQubMytAXdKmFCLh\nSISktfVltrhhDh80crw0ccdoQwKBgQCzjyY57iIRlxUOdqD4ynRmOC7iZgl554a1\nVRkUIk57IsOxBWae3mYkiAbCvGDijeqWO61oBRfN/xphnR9RECwtzCdCDTdMcUp4\ni33hHD/vafZRZP4BlNTcZC27B/6ixkdR9LddMtpAT4DUkELhcsn32P/3mzG3rFnL\nljJ+F9jT1wKBgBurKEPEl7GoTzbc2I1WImdio30OFVklv2om+7e4IFOmFJavRaZg\nXtlZHv0uci6nNLBC5Hq0zYtRspXJimmUgRrMJkvSQmo/W4SQ09XCmSSbfvA0TLf7\nFYnfBxVaJb3U4objg/sQ3XJJZHHlf4BkdAI2BAaPIlvlms+Kg8aJa0gRAoGAT/QH\n83ej1+1MRPpxxxZvKi0OQ2VoBs4fX5Ma7aoxBAeA18wt28Pv+4hOalvzUC4dLPQ5\nzL2n0eQr3RdXoILxCRuEx5aW7wTrQi3qyVgI6BRox+mOaSnadqBs9IEk01oy2716\nAJfqMwSzuvLZtQWmBSStJZYHV1/5Q/wHU7pOpFUCgYBVCgJQ9WboLqHpXl2A++wk\nzEnwSM4KDCRc25wAdZykFXf8uXEuIIZG4QsH56ljGrAoulJAGGV1qwqaYoHQzowV\nPDFfDEKYKLzT4MF0/kDsYgrnZka2HreLba0Ujwx4MjMDkeoAjbg/uW2jOgRgAHsY\nh0lBer2hP8NFqBPBBTNDwQ==\n-----END PRIVATE KEY-----",
+							"type": "text"
+						},
+						{
+							"key": "cerPEM",
+							"value": "-----BEGIN CERTIFICATE-----\nMIIFuzCCA6OgAwIBAgIUMzAwMDEwMDAwMDA0MDAwMDI0MzQwDQYJKoZIhvcNAQEL\nBQAwggErMQ8wDQYDVQQDDAZBQyBVQVQxLjAsBgNVBAoMJVNFUlZJQ0lPIERFIEFE\nTUlOSVNUUkFDSU9OIFRSSUJVVEFSSUExGjAYBgNVBAsMEVNBVC1JRVMgQXV0aG9y\naXR5MSgwJgYJKoZIhvcNAQkBFhlvc2Nhci5tYXJ0aW5lekBzYXQuZ29iLm14MR0w\nGwYDVQQJDBQzcmEgY2VycmFkYSBkZSBjYWRpejEOMAwGA1UEEQwFMDYzNzAxCzAJ\nBgNVBAYTAk1YMRkwFwYDVQQIDBBDSVVEQUQgREUgTUVYSUNPMREwDwYDVQQHDAhD\nT1lPQUNBTjERMA8GA1UELRMIMi41LjQuNDUxJTAjBgkqhkiG9w0BCQITFnJlc3Bv\nbnNhYmxlOiBBQ0RNQS1TQVQwHhcNMTkwNjE3MTk0NDE0WhcNMjMwNjE3MTk0NDE0\nWjCB4jEnMCUGA1UEAxMeRVNDVUVMQSBLRU1QRVIgVVJHQVRFIFNBIERFIENWMScw\nJQYDVQQpEx5FU0NVRUxBIEtFTVBFUiBVUkdBVEUgU0EgREUgQ1YxJzAlBgNVBAoT\nHkVTQ1VFTEEgS0VNUEVSIFVSR0FURSBTQSBERSBDVjElMCMGA1UELRMcRUtVOTAw\nMzE3M0M5IC8gWElRQjg5MTExNlFFNDEeMBwGA1UEBRMVIC8gWElRQjg5MTExNk1H\nUk1aUjA1MR4wHAYDVQQLExVFc2N1ZWxhIEtlbXBlciBVcmdhdGUwggEiMA0GCSqG\nSIb3DQEBAQUAA4IBDwAwggEKAoIBAQCN0peKpgfOL75iYRv1fqq+oVYsLPVUR/Gi\nbYmGKc9InHFy5lYF6OTYjnIIvmkOdRobbGlCUxORX/tLsl8Ya9gm6Yo7hHnODRBI\nDup3GISFzB/96R9K/MzYQOcscMIoBDARaycnLvy7FlMvO7/rlVnsSARxZRO8Kz8Z\nkksj2zpeYpjZIya/369+oGqQk1cTRkHo59JvJ4Tfbk/3iIyf4H/Ini9nBe9cYWo0\nMnKob7DDt/vsdi5tA8mMtA953LapNyCZIDCRQQlUGNgDqY9/8F5mUvVgkcczsIgG\ndvf9vMQPSf3jjCiKj7j6ucxl1+FwJWmbvgNmiaUR/0q4m2rm78lFAgMBAAGjHTAb\nMAwGA1UdEwEB/wQCMAAwCwYDVR0PBAQDAgbAMA0GCSqGSIb3DQEBCwUAA4ICAQBc\npj1TjT4jiinIujIdAlFzE6kRwYJCnDG08zSp4kSnShjxADGEXH2chehKMV0FY7c4\nnjA5eDGdA/G2OCTPvF5rpeCZP5Dw504RZkYDl2suRz+wa1sNBVpbnBJEK0fQcN3I\nftBwsgNFdFhUtCyw3lus1SSJbPxjLHS6FcZZ51YSeIfcNXOAuTqdimusaXq15GrS\nrCOkM6n2jfj2sMJYM2HXaXJ6rGTEgYmhYdwxWtil6RfZB+fGQ/H9I9WLnl4KTZUS\n6C9+NLHh4FPDhSk19fpS2S/56aqgFoGAkXAYt9Fy5ECaPcULIfJ1DEbsXKyRdCv3\nJY89+0MNkOdaDnsemS2o5Gl08zI4iYtt3L40gAZ60NPh31kVLnYNsmvfNxYyKp+A\neJtDHyW9w7ftM0Hoi+BuRmcAQSKFV3pk8j51la+jrRBrAUv8blbRcQ5BiZUwJzHF\nEKIwTsRGoRyEx96sNnB03n6GTwjIGz92SmLdNl95r9rkvp+2m4S6q1lPuXaFg7DG\nBrXWC8iyqeWE2iobdwIIuXPTMVqQb12m1dAkJVRO5NdHnP/MpqOvOgLqoZBNHGyB\ng4Gqm4sCJHCxA1c8Elfa2RQTCk0tAzllL4vOnI1GHkGJn65xokGsaU4B4D36xh7e\nWrfj4/pgWHmtoDAYa8wzSwo2GVCZOs+mtEgOQB91/g==\n-----END CERTIFICATE-----",
+							"type": "text"
+						},
+						{
+							"key": "uuid",
+							"value": "FFFFFFFF-A87F-4985-B14C-16B4C1F0E21D",
+							"type": "text"
+						},
+						{
+							"key": "respuesta",
+							"value": "Aceptar",
+							"type": "text"
+						}
+					]
+				},
+				"url": {
+					"raw": "https://dev.timbradorxpress.mx/api/rest/servicio/autorizarCancelacion",
+					"protocol": "https",
+					"host": [
+						"dev",
+						"timbradorxpress",
+						"mx"
+					],
+					"path": [
+						"api",
+						"rest",
+						"servicio",
+						"autorizarCancelacion"
+					]
+				}
+			},
+			"response": []
+		}
+	]
+}

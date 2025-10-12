@@ -2,9 +2,14 @@
 
 import { useState } from "react";
 import { TrendingUp, TrendingDown, DollarSign, ArrowUp, ArrowDown, Clock, Building, Users } from "lucide-react";
+import { PeriodFilter, type PeriodValue } from "@/components/ui/period-filter";
 
 export default function DashboardHomePage() {
-  const [selectedPeriod, setSelectedPeriod] = useState<"Semana" | "Quincena" | "Mes" | "Año">("Mes");
+  const [selectedPeriod, setSelectedPeriod] = useState<PeriodValue>("Mes");
+  const [customDateRange, setCustomDateRange] = useState<{ from: Date | undefined; to: Date | undefined }>({
+    from: undefined,
+    to: undefined,
+  });
 
   return (
     <div className="space-y-6">
@@ -14,22 +19,12 @@ export default function DashboardHomePage() {
           <h1 className="text-3xl font-bold text-white">Dashboard</h1>
           <p className="text-sm text-gray-400">Resumen general del sistema</p>
         </div>
-        <div className="flex items-center gap-1 rounded-xl border border-white/10 bg-slate-900/50 p-1 shadow-lg backdrop-blur-sm">
-          {(["Semana", "Quincena", "Mes", "Año"] as const).map((label) => (
-            <button
-              key={label}
-              type="button"
-              onClick={() => setSelectedPeriod(label)}
-              className={`rounded-lg px-4 py-2 text-sm font-semibold transition-all duration-200 ${
-                selectedPeriod === label
-                  ? "bg-blue-500 text-white shadow-lg shadow-blue-500/30"
-                  : "text-gray-400 hover:bg-white/5 hover:text-white"
-              }`}
-            >
-              {label}
-            </button>
-          ))}
-        </div>
+        <PeriodFilter
+          selectedPeriod={selectedPeriod}
+          onPeriodChange={setSelectedPeriod}
+          customDateRange={customDateRange}
+          onCustomDateRangeChange={setCustomDateRange}
+        />
       </div>
 
       {/* Resumen Financiero */}
