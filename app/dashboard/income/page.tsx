@@ -393,26 +393,111 @@ export default function IncomePage() {
 
     const quantity = parseFloat(formData.quantity);
     const unitPrice = parseFloat(formData.unitPrice);
-    const { subtotal, iva, retencionISR, total } = calculateTotals(formData.conceptId, quantity, unitPrice);
+    const totals = calculateTotals(formData.conceptId, quantity, unitPrice);
 
-    const newTransaction: IncomeTransaction = {
-      id: Date.now().toString(),
-      clientId: formData.clientId,
-      clientName: client.company,
-      conceptId: formData.conceptId,
-      conceptName: concept.name,
-      quantity,
-      unitPrice,
-      subtotal,
-      iva,
-      retencionISR,
-      total,
-      date: formData.date,
-      isBilled: false,
-      status: formData.status
-    };
+    if (formData.isProject) {
+      // Crear proyecto con pagos parciales
+      const numberOfPayments = parseInt(formData.numberOfPayments);
+      if (numberOfPayments < 2) {
+        alert("Un proyecto debe tener al menos 2 pagos");
+        return;
+      }
+      if (!formData.projectName) {
+        alert("Ingresa el nombre del proyecto");
+        return;
+      }
 
-    setTransactions(prev => [newTransaction, ...prev]);
+      const projectId = `proj-${Date.now()}`;
+      const paymentAmount = totals.total / numberOfPayments;
+
+      // Crear el proyecto padre
+      const projectTransaction: IncomeTransaction = {
+        id: projectId,
+        clientId: formData.clientId,
+        clientName: client.company,
+        conceptId: formData.conceptId,
+        conceptName: concept.name,
+        quantity,
+        unitPrice,
+        subtotal: totals.subtotal,
+        iva: totals.iva,
+        retencionISR: totals.retencionISR,
+        total: totals.total,
+        date: formData.date,
+        isProject: true,
+        projectName: formData.projectName,
+        totalProjectAmount: totals.total,
+        numberOfPayments,
+        invoiceType: formData.invoiceType || "PPD",
+        paymentMethod: formData.paymentMethod || "Por Definir",
+        paymentForm: formData.paymentForm,
+        paymentConditions: formData.paymentConditions,
+        invoiceStatus: "pending",
+        isBilled: false,
+        status: "pending"
+      };
+
+      // Crear pagos parciales
+      const partialPayments: IncomeTransaction[] = [];
+      for (let i = 1; i <= numberOfPayments; i++) {
+        const paymentDate = new Date(formData.date);
+        paymentDate.setMonth(paymentDate.getMonth() + (i - 1));
+
+        partialPayments.push({
+          id: `${projectId}-p${i}`,
+          clientId: formData.clientId,
+          clientName: client.company,
+          conceptId: formData.conceptId,
+          conceptName: concept.name,
+          quantity: quantity / numberOfPayments,
+          unitPrice,
+          subtotal: totals.subtotal / numberOfPayments,
+          iva: totals.iva / numberOfPayments,
+          retencionISR: totals.retencionISR / numberOfPayments,
+          total: paymentAmount,
+          date: paymentDate.toISOString().split('T')[0],
+          parentProjectId: projectId,
+          paymentNumber: i,
+          isProject: false,
+          invoiceType: formData.invoiceType || "PPD",
+          paymentMethod: "Por Definir",
+          paymentForm: "99",
+          invoiceStatus: "pending",
+          isBilled: false,
+          status: "pending"
+        });
+      }
+
+      setTransactions(prev => [projectTransaction, ...partialPayments, ...prev]);
+      alert(`✅ Proyecto "${formData.projectName}" creado con ${numberOfPayments} pagos parciales`);
+    } else {
+      // Crear cobro regular
+      const newTransaction: IncomeTransaction = {
+        id: `trans-${Date.now()}`,
+        clientId: formData.clientId,
+        clientName: client.company,
+        conceptId: formData.conceptId,
+        conceptName: concept.name,
+        quantity,
+        unitPrice,
+        subtotal: totals.subtotal,
+        iva: totals.iva,
+        retencionISR: totals.retencionISR,
+        total: totals.total,
+        date: formData.date,
+        isProject: false,
+        invoiceType: formData.invoiceType || "PUE",
+        paymentMethod: formData.paymentMethod || "Transferencia",
+        paymentForm: formData.paymentForm,
+        paymentConditions: formData.paymentConditions,
+        invoiceStatus: "pending",
+        isBilled: false,
+        status: formData.status
+      };
+
+      setTransactions(prev => [newTransaction, ...prev]);
+    }
+
     setShowNewForm(false);
     resetForm();
   };
@@ -471,6 +556,66 @@ export default function IncomePage() {
     if (confirm("¿Estás seguro de eliminar este cobro?")) {
       setTransactions(prev => prev.filter(t => t.id !== id));
     }
+  };
+
+  const handlePreviewInvoice = (id: string) => {
+    const previewUrl = `/invoices/preview-${id}.pdf`;
+    setTransactions(prev => prev.map(t => 
+      t.id === id 
+        ? { ...t, invoiceStatus: "preview" as const, invoicePreviewUrl: previewUrl }
+        : t
+    ));
+    alert(`✅ Preview de factura generado\n(Se abrirá en nueva ventana cuando se integre FacturaloPlus)`);
+  };
+
+  const handleStampInvoice = (id: string) => {
+    const transaction = transactions.find(t => t.id === id);
+    if (!transaction) return;
+
+    const invoiceNumber = `FAC-${new Date().getFullYear()}-${String(transactions.length + 1).padStart(3, '0')}`;
+    const xmlUrl = `/invoices/${invoiceNumber}.xml`;
+    const pdfUrl = `/invoices/${invoiceNumber}.pdf`;
+
+    setTransactions(prev => prev.map(t => 
+      t.id === id 
+        ? { 
+            ...t, 
+            invoiceStatus: "stamped" as const, 
+            isBilled: true,
+            invoiceNumber,
+            invoiceXmlUrl: xmlUrl,
+            invoiceStampedPdfUrl: pdfUrl
+          }
+        : t
+    ));
+
+    alert(`✅ Factura timbrada: ${invoiceNumber}\nXML y PDF generados\n(Integración con FacturaloPlus pendiente)`);
+  };
+
+  const handleGenerateComplement = (id: string) => {
+    const transaction = transactions.find(t => t.id === id);
+    if (!transaction) return;
+
+    const complementId = `comp-${Date.now()}`;
+    const complementXml = `/complements/COMP-${transaction.invoiceNumber}-${complementId}.xml`;
+
+    const newComplement = {
+      id: complementId,
+      date: new Date().toISOString().split('T')[0],
+      amount: transaction.total,
+      xmlUrl: complementXml
+    };
+
+    setTransactions(prev => prev.map(t => 
+      t.id === id 
+        ? { 
+            ...t, 
+            paymentComplements: [...(t.paymentComplements || []), newComplement]
+          }
+        : t
+    ));
+
+    alert(`✅ Complemento de pago generado\nFolio: ${complementId}\n(Integración con FacturaloPlus pendiente)`);
   };
 
   const handleBill = (id: string) => {
