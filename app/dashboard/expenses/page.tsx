@@ -373,37 +373,60 @@ export default function ExpensesPage() {
       return;
     }
 
-    const provider = providers.find(p => p.id === formData.providerId);
-    const employee = employees.find(e => e.id === formData.employeeId);
+    try {
+      const companyId = "temp-company-id";
+      
+      // Crear transacción en la base de datos
+      const { createTransaction } = await import("@/modules/transactions/actions/create-transaction");
+      
+      const result = await createTransaction({
+        companyId,
+        type: "expense",
+        date: new Date(formData.date),
+        description: formData.description,
+        providerId: formData.providerId || undefined,
+        employeeId: formData.employeeId || undefined,
+        total: parseFloat(formData.amount),
+        status: formData.status,
+        paymentStatus: formData.paymentStatus,
+        bankAccountId: formData.bankAccountId || undefined,
+        paymentProofFiles,
+        invoiceFiles,
+      });
 
-    // Use the uploaded file URLs directly
-    const paymentProofUrls = paymentProofFiles;
-    const invoiceUrls = invoiceFiles;
-
-    const selectedBankAccount = bankAccounts.find(a => a.id === formData.bankAccountId);
-    const newTransaction: ExpenseTransaction = {
-      id: Date.now().toString(),
-      paymentType: formData.paymentType,
-      providerId: formData.providerId || undefined,
-      providerName: provider?.company,
-      employeeId: formData.employeeId || undefined,
-      employeeName: employee?.name,
-      description: formData.description,
-      amount: parseFloat(formData.amount),
-      date: formData.date,
-      hoursWorked: formData.hoursWorked ? parseFloat(formData.hoursWorked) : undefined,
-      hourlyRate: employee?.salaryPeriod === "hourly" ? employee.salary : undefined,
-      paymentProofFiles: paymentProofUrls,
-      invoiceFiles: invoiceUrls,
-      bankAccountId: formData.bankAccountId || undefined,
-      bankAccountName: selectedBankAccount?.name,
-      paymentStatus: formData.paymentStatus,
-      status: formData.status
-    };
-
-    setTransactions(prev => [newTransaction, ...prev]);
-    setShowNewForm(false);
-    resetForm();
+      if (result.success) {
+        toast.success("Pago creado exitosamente");
+        setShowNewForm(false);
+        resetForm();
+        setPaymentProofFiles([]);
+        setInvoiceFiles([]);
+        
+        // Recargar datos
+        const data = await loadExpenseData(companyId);
+        setTransactions(data.transactions.map((t: any) => ({
+          id: t.id,
+          paymentType: t.providerId ? "provider" : "employee",
+          providerId: t.providerId,
+          providerName: t.provider?.company,
+          employeeId: t.employeeId,
+          employeeName: t.employee?.fullName,
+          description: t.description || "",
+          amount: Number(t.total || t.amount || 0),
+          date: new Date(t.date).toISOString().split('T')[0],
+          paymentProofFiles: t.paymentProofFiles ? JSON.parse(t.paymentProofFiles) : [],
+          invoiceFiles: t.invoiceFiles ? JSON.parse(t.invoiceFiles) : [],
+          bankAccountId: t.bankAccountId,
+          bankAccountName: data.bankAccounts.find((b: any) => b.id === t.bankAccountId)?.name,
+          paymentStatus: t.paymentStatus || "pending",
+          status: t.status || "pending",
+        })));
+      } else {
+        toast.error(result.error || "Error al crear pago");
+      }
+    } catch (error) {
+      console.error("Error creating expense:", error);
+      toast.error("Error al crear pago");
+    }
   };
 
   const handleStartEdit = (transaction: ExpenseTransaction) => {
@@ -446,40 +469,95 @@ export default function ExpensesPage() {
       return;
     }
 
-    const provider = providers.find(p => p.id === formData.providerId);
-    const employee = employees.find(e => e.id === formData.employeeId);
-    const selectedBankAccount = bankAccounts.find(a => a.id === formData.bankAccountId);
+    try {
+      const companyId = "temp-company-id";
+      const { updateTransaction } = await import("@/modules/transactions/actions/update-transaction");
+      
+      const result = await updateTransaction({
+        id: editingId,
+        date: new Date(formData.date),
+        description: formData.description,
+        providerId: formData.providerId || undefined,
+        employeeId: formData.employeeId || undefined,
+        total: parseFloat(formData.amount),
+        status: formData.status,
+        paymentStatus: formData.paymentStatus,
+        bankAccountId: formData.bankAccountId || undefined,
+        paymentProofFiles,
+        invoiceFiles,
+      });
 
-    const transaction = transactions.find(t => t.id === editingId);
-    const updatedTransaction: ExpenseTransaction = {
-      ...transaction!,
-      paymentType: formData.paymentType,
-      providerId: formData.providerId || undefined,
-      providerName: provider?.company,
-      employeeId: formData.employeeId || undefined,
-      employeeName: employee?.name,
-      description: formData.description,
-      amount: parseFloat(formData.amount),
-      date: formData.date,
-      hoursWorked: formData.hoursWorked ? parseFloat(formData.hoursWorked) : undefined,
-      hourlyRate: employee?.salaryPeriod === "hourly" ? employee.salary : undefined,
-      paymentProofFiles: paymentProofFiles,
-      invoiceFiles: invoiceFiles,
-      bankAccountId: formData.bankAccountId || undefined,
-      bankAccountName: selectedBankAccount?.name,
-      paymentStatus: formData.paymentStatus,
-      status: formData.status
-    };
-
-    setTransactions(prev => prev.map(t => t.id === editingId ? updatedTransaction : t));
-    setEditingId(null);
-    setShowNewForm(false);
-    resetForm();
+      if (result.success) {
+        toast.success("Pago actualizado exitosamente");
+        setEditingId(null);
+        setShowNewForm(false);
+        resetForm();
+        setPaymentProofFiles([]);
+        setInvoiceFiles([]);
+        
+        // Recargar datos
+        const data = await loadExpenseData(companyId);
+        setTransactions(data.transactions.map((t: any) => ({
+          id: t.id,
+          paymentType: t.providerId ? "provider" : "employee",
+          providerId: t.providerId,
+          providerName: t.provider?.company,
+          employeeId: t.employeeId,
+          employeeName: t.employee?.fullName,
+          description: t.description || "",
+          amount: Number(t.total || t.amount || 0),
+          date: new Date(t.date).toISOString().split('T')[0],
+          paymentProofFiles: t.paymentProofFiles ? JSON.parse(t.paymentProofFiles) : [],
+          invoiceFiles: t.invoiceFiles ? JSON.parse(t.invoiceFiles) : [],
+          bankAccountId: t.bankAccountId,
+          bankAccountName: data.bankAccounts.find((b: any) => b.id === t.bankAccountId)?.name,
+          paymentStatus: t.paymentStatus || "pending",
+          status: t.status || "pending",
+        })));
+      } else {
+        toast.error(result.error || "Error al actualizar pago");
+      }
+    } catch (error) {
+      console.error("Error updating expense:", error);
+      toast.error("Error al actualizar pago");
+    }
   };
 
-  const handleDelete = (id: string) => {
-    if (confirm("¿Estás seguro de eliminar este pago?")) {
-      setTransactions(prev => prev.filter(t => t.id !== id));
+  const handleDelete = async (id: string) => {
+    try {
+      const companyId = "temp-company-id";
+      const { deleteTransaction } = await import("@/modules/transactions/actions/delete-transaction");
+      
+      const result = await deleteTransaction(id);
+      
+      if (result.success) {
+        toast.success("Pago eliminado exitosamente");
+        
+        // Recargar datos
+        const data = await loadExpenseData(companyId);
+        setTransactions(data.transactions.map((t: any) => ({
+          id: t.id,
+          paymentType: t.providerId ? "provider" : "employee",
+          providerId: t.providerId,
+          providerName: t.provider?.company,
+          employeeId: t.employeeId,
+          employeeName: t.employee?.fullName,
+          description: t.description || "",
+          amount: Number(t.total || t.amount || 0),
+          date: new Date(t.date).toISOString().split('T')[0],
+          paymentProofFiles: t.paymentProofFiles ? JSON.parse(t.paymentProofFiles) : [],
+          invoiceFiles: t.invoiceFiles ? JSON.parse(t.invoiceFiles) : [],
+          bankAccountId: t.bankAccountId,
+          bankAccountName: data.bankAccounts.find((b: any) => b.id === t.bankAccountId)?.name,
+          paymentStatus: t.paymentStatus || "pending",
+          status: t.status || "pending",
+        })));
+      } else {
+        toast.error(result.error || "Error al eliminar pago");
+      }
+    } catch (error) {
+      console.error("Error deleting expense:", error);
+      toast.error("Error al eliminar pago");
     }
   };
 
