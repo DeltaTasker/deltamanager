@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Plus, Search, Edit, Trash2, CheckCircle, Eye, MessageSquare, ExternalLink } from "lucide-react";
+import { Plus, Search, Edit, Trash2, Eye, ExternalLink } from "lucide-react";
 import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
@@ -87,8 +87,6 @@ export default function ProposalsPageInline() {
   // Estados para modales
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
   const [deleteTargetId, setDeleteTargetId] = useState<string | null>(null);
-  const [acceptConfirmOpen, setAcceptConfirmOpen] = useState(false);
-  const [acceptTargetId, setAcceptTargetId] = useState<string | null>(null);
   const [previewFileUrl, setPreviewFileUrl] = useState<string | null>(null);
   const [previewFileName, setPreviewFileName] = useState<string>("");
 
@@ -199,6 +197,24 @@ export default function ProposalsPageInline() {
         }
       } else {
         // Actualizar existente
+        const currentProposal = proposals.find(p => p.id === editingData.id);
+        const wasNotAccepted = currentProposal && currentProposal.status !== "accepted";
+        const isNowAccepted = editingData.status === "accepted";
+
+        // Si se está cambiando a "accepted", primero generar la cobranza
+        if (wasNotAccepted && isNowAccepted) {
+          const acceptResult = await acceptProposal(editingData.id);
+          if (!acceptResult.success) {
+            toast.error(acceptResult.error || "Error al generar cobranza");
+            return;
+          }
+          toast.success("Propuesta aceptada y cobranza generada exitosamente");
+          handleCancelEdit();
+          loadData();
+          return;
+        }
+
+        // Si no se está aceptando, solo actualizar
         const result = await updateProposal({
           id: editingData.id,
           title: editingData.title,
@@ -244,26 +260,6 @@ export default function ProposalsPageInline() {
     setDeleteTargetId(null);
   };
 
-  const handleAccept = async () => {
-    if (!acceptTargetId) return;
-
-    try {
-      const result = await acceptProposal(acceptTargetId);
-
-      if (result.success) {
-        toast.success("Propuesta aceptada y cobro generado");
-        loadData();
-      } else {
-        toast.error(result.error || "Error al aceptar la propuesta");
-      }
-    } catch (error) {
-      console.error("Error accepting proposal:", error);
-      toast.error("Error al aceptar la propuesta");
-    }
-
-    setAcceptConfirmOpen(false);
-    setAcceptTargetId(null);
-  };
 
   const handleFileUpload = (files: string[]) => {
     if (editingData) {
@@ -656,27 +652,13 @@ export default function ProposalsPageInline() {
                       ]}
                       actionButtons={
                         <div className="flex justify-end gap-2">
-                          {proposal.status !== "accepted" && (
-                            <>
-                              <Button
-                                variant="ghost"
-                                size="sm"
-                                onClick={() => handleStartEdit(proposal)}
-                              >
-                                <Edit className="h-4 w-4" />
-                              </Button>
-                              <Button
-                                variant="ghost"
-                                size="sm"
-                                onClick={() => {
-                                  setAcceptTargetId(proposal.id);
-                                  setAcceptConfirmOpen(true);
-                                }}
-                              >
-                                <CheckCircle className="h-4 w-4 text-green-600" />
-                              </Button>
-                            </>
-                          )}
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => handleStartEdit(proposal)}
+                          >
+                            <Edit className="h-4 w-4" />
+                          </Button>
                           {proposal.status === "accepted" && proposal.transactionId && (
                             <Button
                               variant="ghost"
@@ -747,16 +729,6 @@ export default function ProposalsPageInline() {
         variant="destructive"
       />
 
-      {/* Confirm Accept Dialog */}
-      <ConfirmDialog
-        open={acceptConfirmOpen}
-        onOpenChange={setAcceptConfirmOpen}
-        onConfirm={handleAccept}
-        title="¿Aceptar propuesta?"
-        description="Se creará un cobro (transacción de ingreso) vinculado a esta propuesta con el total del concepto."
-        confirmText="Aceptar Propuesta"
-        variant="default"
-      />
     </div>
   );
 }
