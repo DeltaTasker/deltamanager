@@ -24,7 +24,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
-import { PeriodFilter, type PeriodValue, filterByDateRange } from "@/components/ui/period-filter";
+import { PeriodFilter, type PeriodValue, isDateInRange } from "@/components/ui/period-filter";
 import { FileUpload } from "@/components/ui/file-upload";
 import { FilePreviewModal } from "@/components/ui/file-preview-modal";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
@@ -176,6 +176,37 @@ export default function IncomePage() {
   // Handle create
   const handleCreate = async () => {
     try {
+      // Validaciones
+      if (!formData.clientId) {
+        toast.error("Selecciona un cliente");
+        return;
+      }
+      
+      if (!formData.conceptId) {
+        toast.error("Selecciona un concepto");
+        return;
+      }
+      
+      if (!formData.quantity || parseFloat(formData.quantity) <= 0) {
+        toast.error("La cantidad debe ser mayor a 0");
+        return;
+      }
+      
+      if (!formData.unitPrice || parseFloat(formData.unitPrice) <= 0) {
+        toast.error("El precio unitario debe ser mayor a 0");
+        return;
+      }
+      
+      if (formData.isProject && !formData.projectName.trim()) {
+        toast.error("El nombre del proyecto es requerido");
+        return;
+      }
+      
+      if (formData.isProject && (!formData.numberOfPayments || parseInt(formData.numberOfPayments) <= 0)) {
+        toast.error("El número de pagos debe ser mayor a 0");
+        return;
+      }
+      
       const companyId = "temp-company-id";
       const totals = calculateAmounts();
       
@@ -183,7 +214,7 @@ export default function IncomePage() {
       const concept = concepts.find(c => c.id === formData.conceptId);
 
       if (!client || !concept) {
-        toast.error("Selecciona cliente y concepto");
+        toast.error("Cliente o concepto no encontrado");
         return;
       }
 
@@ -368,7 +399,7 @@ export default function IncomePage() {
     const matchesBankAccount = filterBankAccount === "all" || transaction.bankAccountId === filterBankAccount;
 
     // Date filter
-    const matchesDate = filterByDateRange(new Date(transaction.date), period, customStartDate, customEndDate);
+    const matchesDate = isDateInRange(transaction.date, period, customStartDate, customEndDate);
 
     return matchesSearch && matchesStatus && matchesPaymentStatus && matchesBankAccount && matchesDate;
   });

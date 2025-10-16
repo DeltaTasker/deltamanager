@@ -151,6 +151,21 @@ export function getDateRangeForPeriod(period: Period, customStart?: string, cust
   return { startDate, endDate };
 }
 
+// Helper function to check if a single date is in range
+export function isDateInRange(
+  date: Date | string,
+  period: Period,
+  customStartDate?: string,
+  customEndDate?: string
+): boolean {
+  if (!date) return false;
+  
+  const { startDate, endDate } = getDateRangeForPeriod(period, customStartDate, customEndDate);
+  const itemDate = new Date(date);
+  
+  return itemDate >= startDate && itemDate <= endDate;
+}
+
 // Helper function to filter transactions by date range
 export function filterByDateRange<T extends { date: string }>(
   items: T[],

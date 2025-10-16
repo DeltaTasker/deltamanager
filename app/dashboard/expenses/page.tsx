@@ -321,8 +321,19 @@ export default function ExpensesPage() {
   };
 
   const handleCreate = async () => {
-    if (!formData.amount || (!formData.providerId && !formData.employeeId)) {
-      alert("Por favor completa los campos obligatorios");
+    // Validaciones
+    if (!formData.amount || parseFloat(formData.amount) <= 0) {
+      toast.error("El monto debe ser mayor a 0");
+      return;
+    }
+    
+    if (!formData.providerId && !formData.employeeId) {
+      toast.error("Selecciona un proveedor o empleado");
+      return;
+    }
+    
+    if (!formData.description.trim()) {
+      toast.error("La descripción es requerida");
       return;
     }
 
@@ -380,8 +391,20 @@ export default function ExpensesPage() {
 
   const handleSaveEdit = async () => {
     if (!editingId) return;
-    if (!formData.amount || (!formData.providerId && !formData.employeeId)) {
-      alert("Por favor completa los campos obligatorios");
+    
+    // Validaciones
+    if (!formData.amount || parseFloat(formData.amount) <= 0) {
+      toast.error("El monto debe ser mayor a 0");
+      return;
+    }
+    
+    if (!formData.providerId && !formData.employeeId) {
+      toast.error("Selecciona un proveedor o empleado");
+      return;
+    }
+    
+    if (!formData.description.trim()) {
+      toast.error("La descripción es requerida");
       return;
     }
 

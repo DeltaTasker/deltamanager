@@ -154,12 +154,33 @@ export default function ProposalsPage() {
 
   const handleCreate = async () => {
     try {
+      // Validaciones
+      if (!formData.title.trim()) {
+        toast.error("El título es requerido");
+        return;
+      }
+      
+      if (!formData.clientId) {
+        toast.error("Selecciona un cliente");
+        return;
+      }
+      
+      if (!formData.conceptId) {
+        toast.error("Selecciona un concepto");
+        return;
+      }
+      
+      if (!formData.unitPrice || parseFloat(formData.unitPrice) <= 0) {
+        toast.error("El precio unitario debe ser mayor a 0");
+        return;
+      }
+      
       const companyId = "temp-company-id";
       const totals = calculateTotals();
       
       const client = clients.find(c => c.id === formData.clientId);
       if (!client) {
-        toast.error("Selecciona un cliente");
+        toast.error("Cliente no encontrado");
         return;
       }
 
@@ -228,6 +249,27 @@ export default function ProposalsPage() {
     if (!editingId) return;
 
     try {
+      // Validaciones
+      if (!formData.title.trim()) {
+        toast.error("El título es requerido");
+        return;
+      }
+      
+      if (!formData.clientId) {
+        toast.error("Selecciona un cliente");
+        return;
+      }
+      
+      if (!formData.conceptId) {
+        toast.error("Selecciona un concepto");
+        return;
+      }
+      
+      if (!formData.unitPrice || parseFloat(formData.unitPrice) <= 0) {
+        toast.error("El precio unitario debe ser mayor a 0");
+        return;
+      }
+      
       const totals = calculateTotals();
 
       const result = await updateProposal({
