@@ -31,15 +31,26 @@ export async function getUserCompanies(userId: string): Promise<UserCompanySumma
   }));
 }
 
-export async function getActiveCompany(userId: string): Promise<UserCompanySummary | null> {
-  const companies = await getUserCompanies(userId);
-  if (companies.length === 0) {
-    return null;
+export async function getActiveCompany(userId: string) {
+  const membership = await prisma.userCompany.findFirst({
+    where: { userId, isDefault: true },
+    include: {
+      company: true,
+    },
+  });
+
+  if (!membership) {
+    // Si no hay default, tomar la primera
+    const firstMembership = await prisma.userCompany.findFirst({
+      where: { userId },
+      include: {
+        company: true,
+      },
+    });
+    return firstMembership?.company ?? null;
   }
 
-  return (
-    companies.find((company) => company.isDefault) ?? companies[0]
-  );
+  return membership.company;
 }
 
 export async function ensureCompanyAccess(userId: string, companyId: string) {

@@ -3,6 +3,7 @@ import { z } from "zod";
 const envSchema = z.object({
   NODE_ENV: z.enum(["development", "test", "production"]).default("development"),
   NEXT_PUBLIC_APP_URL: z.string().url().optional().default("http://localhost:3000"),
+  AUTH_URL: z.string().optional(),
   DATABASE_URL: z.string(),
   AUTH_SECRET: z.string().min(32),
   // Phase 2 - Billing (optional for Phase 1)
@@ -10,11 +11,11 @@ const envSchema = z.object({
   STRIPE_WEBHOOK_SECRET: z.string().optional(),
   // Phase 3 - CFDI (optional for Phase 1)
   FACTURALO_API_KEY: z.string().optional(),
-  FACTURALO_API_URL: z.string().url().optional().default("https://dev.facturaloplus.com"),
+  FACTURALO_API_URL: z.string().optional(),
   FACTURALO_CER_PEM: z.string().optional(), // Certificado SAT en formato PEM
   FACTURALO_KEY_PEM: z.string().optional(), // Llave privada SAT en formato PEM
   // Optional services
-  UPSTASH_REDIS_URL: z.string().url().optional(),
+  UPSTASH_REDIS_URL: z.string().optional(),
   UPSTASH_REDIS_TOKEN: z.string().optional(),
   OPENAI_API_KEY: z.string().optional(),
   RESEND_API_KEY: z.string().optional(),
@@ -36,6 +37,7 @@ const envSchema = z.object({
 const env = envSchema.safeParse({
   NODE_ENV: process.env.NODE_ENV,
   NEXT_PUBLIC_APP_URL: process.env.NEXT_PUBLIC_APP_URL,
+  AUTH_URL: process.env.AUTH_URL,
   DATABASE_URL: process.env.DATABASE_URL,
   AUTH_SECRET: process.env.AUTH_SECRET,
   STRIPE_SECRET_KEY: process.env.STRIPE_SECRET_KEY,

@@ -16,6 +16,7 @@ import {
   Settings,
   ChevronRight,
   DollarSign,
+  FileText,
 } from "lucide-react";
 import { useState } from "react";
 
@@ -51,6 +52,7 @@ const links = [
     icon: TrendingUp,
     isCollapsible: true,
     items: [
+      { href: "/dashboard/proposals", label: "Propuestas", icon: FileText },
       { href: "/dashboard/income", label: "Cobranza", icon: DollarSign },
       { href: "/dashboard/income/clients", label: "Clientes", icon: Users },
       { href: "/dashboard/income/concepts", label: "Conceptos", icon: Tags },
@@ -66,11 +68,14 @@ const links = [
       { href: "/dashboard/expenses/proveedores", label: "Proveedores", icon: Building },
     ],
   },
-  { 
-    href: "/dashboard/config", 
-    label: "Configuración", 
+  {
+    title: "Configuración",
     icon: Settings,
-    description: "Ajustes del sistema"
+    isCollapsible: true,
+    items: [
+      { href: "/dashboard/config", label: "General", icon: Settings },
+      { href: "/dashboard/config/bank-accounts", label: "Cuentas Bancarias", icon: CreditCard },
+    ],
   },
 ];
 
@@ -239,11 +244,11 @@ export function DashboardSidebar({ companies }: DashboardSidebarProps) {
           }
 
           const Icon = item.icon;
-          const active = isActive(item.href);
+          const active = item.href ? isActive(item.href) : false;
           
           const linkElement = (
             <Link
-              href={item.href}
+              href={item.href || "#"}
               className={cn(
                 "group flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-semibold transition-all duration-200",
                 active

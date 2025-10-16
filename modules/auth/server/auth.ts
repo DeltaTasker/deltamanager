@@ -7,7 +7,20 @@ import { verifyOtp } from "./otp";
 export const { auth, handlers, signIn, signOut } = NextAuth({
   session: {
     strategy: "jwt",
-    maxAge: 60 * 60 * 8,
+    maxAge: 60 * 60 * 24 * 30, // 30 días de sesión persistente
+    updateAge: 60 * 60 * 24, // Actualizar cada 24 horas
+  },
+  cookies: {
+    sessionToken: {
+      name: `deltamanager.session-token`,
+      options: {
+        httpOnly: true,
+        sameSite: "lax",
+        path: "/",
+        secure: process.env.NODE_ENV === "production",
+        maxAge: 60 * 60 * 24 * 30, // 30 días persistentes
+      },
+    },
   },
   pages: {
     signIn: "/access",

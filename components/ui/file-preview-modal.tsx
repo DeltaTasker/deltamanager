@@ -1,150 +1,82 @@
 "use client";
 
-import { useState } from "react";
-import { X, Download, FileText, Image as ImageIcon } from "lucide-react";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
+import { Download, X } from "lucide-react";
 
-interface FilePreviewModalProps {
-  files: string[];
+type FilePreviewModalProps = {
   isOpen: boolean;
   onClose: () => void;
-  title?: string;
-}
+  fileUrl: string;
+  fileName: string;
+  fileType?: string;
+};
 
-export function FilePreviewModal({ files, isOpen, onClose, title = "Archivos" }: FilePreviewModalProps) {
-  const [selectedFileIndex, setSelectedFileIndex] = useState(0);
+export function FilePreviewModal({
+  isOpen,
+  onClose,
+  fileUrl,
+  fileName,
+  fileType,
+}: FilePreviewModalProps) {
+  const ext = fileName?.split(".").pop()?.toLowerCase() || "";
+  const isImage = ["jpg", "jpeg", "png", "webp"].includes(ext);
+  const isPDF = ext === "pdf";
 
-  if (files.length === 0) return null;
-
-  const currentFile = files[selectedFileIndex];
-  const fileExtension = currentFile.split('.').pop()?.toLowerCase() || '';
-
-  const canPreview = ['pdf', 'png', 'jpg', 'jpeg', 'gif', 'webp'].includes(fileExtension);
-  const isImage = ['png', 'jpg', 'jpeg', 'gif', 'webp'].includes(fileExtension);
-  const isPDF = fileExtension === 'pdf';
-
-  const handleDownload = (fileName: string) => {
-    // En producción, esto sería una URL real del servidor
-    console.log("Downloading:", fileName);
-    alert(`Descargando: ${fileName}`);
+  const handleDownload = () => {
+    const link = document.createElement("a");
+    link.href = fileUrl;
+    link.download = fileName;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
   };
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-4xl max-h-[90vh] bg-gray-900 border-gray-700 overflow-hidden flex flex-col">
-        <DialogHeader className="border-b border-gray-700 pb-4">
+      <DialogContent className="max-w-4xl">
+        <DialogHeader>
           <div className="flex items-center justify-between">
-            <DialogTitle className="text-white text-lg">{title}</DialogTitle>
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={onClose}
-              className="text-gray-400 hover:text-white"
-            >
-              <X className="h-5 w-5" />
-            </Button>
-          </div>
-        </DialogHeader>
-
-        <div className="flex-1 overflow-y-auto py-4">
-          {/* File Tabs */}
-          {files.length > 1 && (
-            <div className="flex gap-2 mb-4 overflow-x-auto pb-2">
-              {files.map((file, index) => (
-                <button
-                  key={index}
-                  onClick={() => setSelectedFileIndex(index)}
-                  className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm whitespace-nowrap transition-colors ${
-                    index === selectedFileIndex
-                      ? 'bg-blue-600 text-white'
-                      : 'bg-gray-800 text-gray-400 hover:bg-gray-700'
-                  }`}
-                >
-                  {file.endsWith('.pdf') ? (
-                    <FileText className="h-4 w-4" />
-                  ) : (
-                    <ImageIcon className="h-4 w-4" />
-                  )}
-                  <span className="truncate max-w-[150px]">{file}</span>
-                </button>
-              ))}
-            </div>
-          )}
-
-          {/* File Preview */}
-          <div className="rounded-lg border border-gray-700 bg-gray-950 p-4">
-            {canPreview ? (
-              <>
-                {isImage && (
-                  <div className="flex items-center justify-center min-h-[400px]">
-                    {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img
-                      src={`/placeholder-files/${currentFile}`}
-                      alt={currentFile}
-                      className="max-w-full max-h-[600px] object-contain rounded-lg"
-                      onError={(e) => {
-                        e.currentTarget.src = 'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" width="200" height="200"><rect fill="%23374151" width="200" height="200"/><text x="50%" y="50%" text-anchor="middle" dy=".3em" fill="%239CA3AF" font-family="sans-serif">Sin Preview</text></svg>';
-                      }}
-                    />
-                  </div>
-                )}
-
-                {isPDF && (
-                  <div className="min-h-[600px] rounded-lg overflow-hidden">
-                    <iframe
-                      src={`/placeholder-files/${currentFile}`}
-                      className="w-full h-[600px] rounded-lg"
-                      title={currentFile}
-                    />
-                  </div>
-                )}
-              </>
-            ) : (
-              <div className="flex flex-col items-center justify-center min-h-[400px] text-gray-400">
-                <FileText className="h-16 w-16 mb-4 text-gray-600" />
-                <p className="text-lg mb-2">No se puede previsualizar este archivo</p>
-                <p className="text-sm text-gray-500 mb-4">
-                  {currentFile} ({fileExtension.toUpperCase()})
-                </p>
-                <Button
-                  onClick={() => handleDownload(currentFile)}
-                  className="bg-blue-600 hover:bg-blue-700 text-white"
-                >
-                  <Download className="h-4 w-4 mr-2" />
-                  Descargar Archivo
-                </Button>
-              </div>
-            )}
-          </div>
-
-          {/* File Info */}
-          <div className="mt-4 flex items-center justify-between text-sm">
-            <div className="text-gray-400">
-              <span className="font-semibold text-white">{currentFile}</span>
-              <span className="mx-2">•</span>
-              <span>Archivo {selectedFileIndex + 1} de {files.length}</span>
-            </div>
-            {canPreview && (
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => handleDownload(currentFile)}
-                className="border-gray-700 text-gray-300 hover:bg-gray-800"
-              >
-                <Download className="h-4 w-4 mr-2" />
+            <DialogTitle>{fileName}</DialogTitle>
+            <div className="flex gap-2">
+              <Button variant="outline" size="sm" onClick={handleDownload}>
+                <Download className="mr-2 h-4 w-4" />
                 Descargar
               </Button>
-            )}
+              <Button variant="ghost" size="sm" onClick={onClose}>
+                <X className="h-4 w-4" />
+              </Button>
+            </div>
           </div>
+        </DialogHeader>
+        <div className="mt-4">
+          {isImage && (
+            <img
+              src={fileUrl}
+              alt={fileName}
+              className="max-h-[600px] w-full object-contain"
+            />
+          )}
+          {isPDF && (
+            <iframe
+              src={fileUrl}
+              className="h-[600px] w-full"
+              title={fileName}
+            />
+          )}
+          {!isImage && !isPDF && (
+            <div className="flex flex-col items-center justify-center py-12">
+              <p className="text-muted-foreground">
+                Preview no disponible para este tipo de archivo
+              </p>
+              <Button variant="outline" className="mt-4" onClick={handleDownload}>
+                <Download className="mr-2 h-4 w-4" />
+                Descargar {fileName}
+              </Button>
+            </div>
+          )}
         </div>
       </DialogContent>
     </Dialog>
   );
 }
-

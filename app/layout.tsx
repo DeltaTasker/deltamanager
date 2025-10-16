@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { ThemeProvider } from "next-themes";
 import { JetBrains_Mono, Montserrat } from "next/font/google";
+import { Toaster } from "sonner";
 import "./globals.css";
 
 const fontSans = Montserrat({
@@ -40,7 +41,10 @@ export default function RootLayout({
   return (
     <html lang="en" suppressHydrationWarning>
       <body className={`${fontSans.variable} ${fontMono.variable} antialiased min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900`}>
-        <AppProviders>{children}</AppProviders>
+        <AppProviders>
+          {children}
+          <Toaster richColors position="top-right" />
+        </AppProviders>
       </body>
     </html>
   );

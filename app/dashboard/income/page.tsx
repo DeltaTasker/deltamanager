@@ -1,9 +1,8 @@
 "use client";
 
-import { useState, Fragment } from "react";
-import { Plus, Search, Edit, Trash2, Download, Filter, Check, X, FileText, UserPlus, TagIcon, ChevronDown, ChevronRight, FolderOpen, Eye, FileCheck } from "lucide-react";
-import { previewCFDI, timbrarCFDI, generarComplementoPago } from "@/app/actions/cfdi";
-import type { IncomeTransactionForCFDI } from "@/modules/cfdi/generator";
+import { useState, useEffect, Fragment } from "react";
+import { Plus, Search, Edit, Trash2, ChevronDown, ChevronRight, Eye, Upload } from "lucide-react";
+import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -25,306 +24,98 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
-import { PeriodFilter, type PeriodValue } from "@/components/ui/period-filter";
+import { PeriodFilter, type PeriodValue, filterByDateRange } from "@/components/ui/period-filter";
+import { FileUpload } from "@/components/ui/file-upload";
+import { FilePreviewModal } from "@/components/ui/file-preview-modal";
+import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 
-// Types
-type Client = {
-  id: string;
-  name: string;
-  company: string;
-  rfc: string;
-  regimenFiscal: string;
-  usoCFDI: string;
-};
-
-type Concept = {
-  id: string;
-  name: string;
-  claveProdServ: string;
-  claveUnidad: string;
-  defaultAmount: number;
-  tasaIVA: number;
-  tasaRetencionISR: number;
-};
-
-type IncomeTransaction = {
-  id: string;
-  clientId: string;
-  clientName: string;
-  conceptId: string;
-  conceptName: string;
-  quantity: number;
-  unitPrice: number;
-  subtotal: number;
-  iva: number;
-  retencionISR: number;
-  total: number;
-  date: string;
-  
-  // Project fields
-  isProject: boolean;
-  projectName?: string;
-  totalProjectAmount?: number;
-  numberOfPayments?: number;
-  parentProjectId?: string;
-  paymentNumber?: number;
-  
-  // Invoice fields
-  invoiceNumber?: string;
-  isBilled: boolean;
-  invoiceType: "PPD" | "PUE" | null;
-  paymentMethod: string; // Efectivo, Transferencia, Cheque, etc.
-  paymentForm: string; // Código SAT: 01, 03, 04, etc.
-  paymentConditions?: string;
-  
-  // Invoice status
-  invoiceStatus: "pending" | "preview" | "stamped";
-  invoicePreviewUrl?: string;
-  invoiceXmlUrl?: string;
-  invoiceStampedPdfUrl?: string;
-  
-  // Payment complements (for PPD)
-  paymentComplements?: Array<{
-    id: string;
-    date: string;
-    amount: number;
-    xmlUrl: string;
-  }>;
-  
-  status: "pending" | "received" | "cancelled";
-};
-
-// Mock Data
-const mockClients: Client[] = [
-  { id: "1", name: "Juan Pérez", company: "Empresa ABC S.A.", rfc: "EAB970312A45", regimenFiscal: "601", usoCFDI: "G03" },
-  { id: "2", name: "María González", company: "Tech Solutions Inc.", rfc: "TSI850615RT4", regimenFiscal: "601", usoCFDI: "G03" }
-];
-
-const mockConcepts: Concept[] = [
-  { id: "1", name: "Servicios Contables", claveProdServ: "80101600", claveUnidad: "E48", defaultAmount: 15000, tasaIVA: 16, tasaRetencionISR: 0 },
-  { id: "2", name: "Consultoría Financiera", claveProdServ: "80141600", claveUnidad: "HUR", defaultAmount: 2500, tasaIVA: 16, tasaRetencionISR: 10.67 }
-];
-
-const mockIncomeData: IncomeTransaction[] = [
-  // Cobro regular (no proyecto)
-  {
-    id: "1",
-    clientId: "1",
-    clientName: "Empresa ABC S.A.",
-    conceptId: "1",
-    conceptName: "Servicios Contables",
-    quantity: 1,
-    unitPrice: 15000,
-    subtotal: 15000,
-    iva: 2400,
-    retencionISR: 0,
-    total: 17400,
-    date: "2024-01-15",
-    invoiceNumber: "FAC-2024-001",
-    isBilled: true,
-    isProject: false,
-    invoiceType: "PUE",
-    paymentMethod: "Transferencia",
-    paymentForm: "03",
-    paymentConditions: "Pago inmediato",
-    invoiceStatus: "stamped",
-    invoiceStampedPdfUrl: "/invoices/FAC-2024-001.pdf",
-    invoiceXmlUrl: "/invoices/FAC-2024-001.xml",
-    status: "received"
-  },
-  // Proyecto con 4 pagos parciales
-  {
-    id: "proj-1",
-    clientId: "2",
-    clientName: "Tech Solutions Inc.",
-    conceptId: "2",
-    conceptName: "Consultoría Financiera",
-    quantity: 1,
-    unitPrice: 12000,
-    subtotal: 12000,
-    iva: 1920,
-    retencionISR: 1280.4,
-    total: 12639.6,
-    date: "2024-01-20",
-    isProject: true,
-    projectName: "Implementación Sistema Contable",
-    totalProjectAmount: 12639.6,
-    numberOfPayments: 4,
-    invoiceType: "PPD",
-    paymentMethod: "Por Definir",
-    paymentForm: "99",
-    paymentConditions: "4 pagos mensuales",
-    invoiceStatus: "stamped",
-    invoiceNumber: "FAC-2024-002",
-    isBilled: true,
-    invoiceStampedPdfUrl: "/invoices/FAC-2024-002.pdf",
-    invoiceXmlUrl: "/invoices/FAC-2024-002.xml",
-    status: "pending"
-  },
-  // Pago parcial 1/4
-  {
-    id: "proj-1-p1",
-    clientId: "2",
-    clientName: "Tech Solutions Inc.",
-    conceptId: "2",
-    conceptName: "Consultoría Financiera",
-    quantity: 1,
-    unitPrice: 3000,
-    subtotal: 3000,
-    iva: 480,
-    retencionISR: 320.1,
-    total: 3159.9,
-    date: "2024-01-20",
-    parentProjectId: "proj-1",
-    paymentNumber: 1,
-    isProject: false,
-    invoiceType: "PPD",
-    paymentMethod: "Transferencia",
-    paymentForm: "03",
-    invoiceStatus: "pending",
-    isBilled: false,
-    paymentComplements: [
-      {
-        id: "comp-1",
-        date: "2024-01-25",
-        amount: 3159.9,
-        xmlUrl: "/complements/COMP-2024-002-001.xml"
-      }
-    ],
-    status: "received"
-  },
-  // Pago parcial 2/4
-  {
-    id: "proj-1-p2",
-    clientId: "2",
-    clientName: "Tech Solutions Inc.",
-    conceptId: "2",
-    conceptName: "Consultoría Financiera",
-    quantity: 1,
-    unitPrice: 3000,
-    subtotal: 3000,
-    iva: 480,
-    retencionISR: 320.1,
-    total: 3159.9,
-    date: "2024-02-20",
-    parentProjectId: "proj-1",
-    paymentNumber: 2,
-    isProject: false,
-    invoiceType: "PPD",
-    paymentMethod: "Por Definir",
-    paymentForm: "99",
-    invoiceStatus: "pending",
-    isBilled: false,
-    status: "pending"
-  },
-  // Pago parcial 3/4
-  {
-    id: "proj-1-p3",
-    clientId: "2",
-    clientName: "Tech Solutions Inc.",
-    conceptId: "2",
-    conceptName: "Consultoría Financiera",
-    quantity: 1,
-    unitPrice: 3000,
-    subtotal: 3000,
-    iva: 480,
-    retencionISR: 320.1,
-    total: 3159.9,
-    date: "2024-03-20",
-    parentProjectId: "proj-1",
-    paymentNumber: 3,
-    isProject: false,
-    invoiceType: "PPD",
-    paymentMethod: "Por Definir",
-    paymentForm: "99",
-    invoiceStatus: "pending",
-    isBilled: false,
-    status: "pending"
-  },
-  // Pago parcial 4/4
-  {
-    id: "proj-1-p4",
-    clientId: "2",
-    clientName: "Tech Solutions Inc.",
-    conceptId: "2",
-    conceptName: "Consultoría Financiera",
-    quantity: 1,
-    unitPrice: 3000,
-    subtotal: 3000,
-    iva: 480,
-    retencionISR: 320.1,
-    total: 3159.9,
-    date: "2024-04-20",
-    parentProjectId: "proj-1",
-    paymentNumber: 4,
-    isProject: false,
-    invoiceType: "PPD",
-    paymentMethod: "Por Definir",
-    paymentForm: "99",
-    invoiceStatus: "pending",
-    isBilled: false,
-    status: "pending"
-  }
-];
+// Actions and queries
+import { createTransaction } from "@/modules/transactions/actions/create-transaction";
+import { updateTransaction } from "@/modules/transactions/actions/update-transaction";
+import { deleteTransaction } from "@/modules/transactions/actions/delete-transaction";
+import { 
+  loadIncomeData, 
+  refreshIncomeTransactions, 
+  type SerializedTransaction,
+  type SerializedClient,
+  type SerializedConcept
+} from "@/app/actions/income";
 
 export default function IncomePage() {
-  const [clients] = useState<Client[]>(mockClients);
-  const [concepts] = useState<Concept[]>(mockConcepts);
-  const [transactions, setTransactions] = useState<IncomeTransaction[]>(mockIncomeData);
-  const [searchTerm, setSearchTerm] = useState("");
-  const [selectedStatus, setSelectedStatus] = useState("all");
-  const [selectedPeriod, setSelectedPeriod] = useState<PeriodValue>("Mes");
-  const [customDateRange, setCustomDateRange] = useState<{ from: Date | undefined; to: Date | undefined }>({
-    from: undefined,
-    to: undefined,
-  });
-  const [editingId, setEditingId] = useState<string | null>(null);
+  // State
+  const [transactions, setTransactions] = useState<SerializedTransaction[]>([]);
+  const [clients, setClients] = useState<SerializedClient[]>([]);
+  const [concepts, setConcepts] = useState<SerializedConcept[]>([]);
+  const [bankAccounts, setBankAccounts] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
   const [showNewForm, setShowNewForm] = useState(false);
+  const [editingId, setEditingId] = useState<string | null>(null);
   const [expandedProjects, setExpandedProjects] = useState<Set<string>>(new Set());
   
+  // Filters
+  const [searchTerm, setSearchTerm] = useState("");
+  const [filterStatus, setFilterStatus] = useState("all");
+  const [filterPaymentStatus, setFilterPaymentStatus] = useState("all");
+  const [filterBankAccount, setFilterBankAccount] = useState("all");
+  const [period, setPeriod] = useState<PeriodValue>("month");
+  const [customStartDate, setCustomStartDate] = useState("");
+  const [customEndDate, setCustomEndDate] = useState("");
+  
+  // Form data
   const [formData, setFormData] = useState({
     clientId: "",
     conceptId: "",
     quantity: "1",
     unitPrice: "",
-    date: new Date().toISOString().split('T')[0],
-    status: "pending" as "pending" | "received" | "cancelled",
-    // Project fields
+    date: new Date().toISOString().split("T")[0],
     isProject: false,
     projectName: "",
     numberOfPayments: "1",
-    // Invoice fields
-    invoiceType: null as "PPD" | "PUE" | null,
-    paymentMethod: "Por Definir",
-    paymentForm: "99",
-    paymentConditions: ""
-  });
-
-  // Search/filter for clients in select
-  const [clientSearch, setClientSearch] = useState("");
-  const [conceptSearch, setConceptSearch] = useState("");
-
-  // Filter top-level transactions (exclude partial payments, they'll be shown inside projects)
-  const filteredTransactions = transactions.filter(transaction => {
-    // Exclude partial payments from top level
-    if (transaction.parentProjectId) return false;
-    
-    const matchesSearch = transaction.clientName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         transaction.conceptName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         transaction.invoiceNumber?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         (transaction.projectName && transaction.projectName.toLowerCase().includes(searchTerm.toLowerCase()));
-    const matchesStatus = selectedStatus === "all" || transaction.status === selectedStatus;
-    return matchesSearch && matchesStatus;
+    invoiceType: "PUE" as "PPD" | "PUE",
+    paymentMethod: "Transferencia",
+    paymentForm: "03",
+    paymentConditions: "",
+    bankAccountId: "",
+    paymentStatus: "pending" as "paid" | "pending" | "debt",
+    status: "pending" as "pending" | "received" | "cancelled",
   });
   
-  // Function to get partial payments for a project
-  const getProjectPayments = (projectId: string) => {
-    return transactions
-      .filter(t => t.parentProjectId === projectId)
-      .sort((a, b) => (a.paymentNumber || 0) - (b.paymentNumber || 0));
+  // File uploads
+  const [paymentProofFiles, setPaymentProofFiles] = useState<string[]>([]);
+  const [previewFileUrl, setPreviewFileUrl] = useState<string | null>(null);
+  const [previewFileName, setPreviewFileName] = useState<string>("");
+  
+  // Delete confirmation
+  const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
+  const [deleteTargetId, setDeleteTargetId] = useState<string | null>(null);
+
+  // Load data
+  useEffect(() => {
+    loadData();
+  }, []);
+
+  const loadData = async () => {
+    try {
+      setLoading(true);
+      
+      // TODO: Get companyId from session
+      const companyId = "temp-company-id";
+      
+      const data = await loadIncomeData(companyId);
+
+      setTransactions(data.transactions);
+      setClients(data.clients);
+      setConcepts(data.concepts);
+      setBankAccounts(data.bankAccounts);
+    } catch (error) {
+      console.error("Error loading data:", error);
+      toast.error("Error al cargar los datos");
+    } finally {
+      setLoading(false);
+    }
   };
-  
-  // Toggle project expansion
+
+  // Toggle project accordion
   const toggleProject = (projectId: string) => {
     setExpandedProjects(prev => {
       const newSet = new Set(prev);
@@ -337,27 +128,205 @@ export default function IncomePage() {
     });
   };
 
-  const filteredClients = clients.filter(c => 
-    c.name.toLowerCase().includes(clientSearch.toLowerCase()) ||
-    c.company.toLowerCase().includes(clientSearch.toLowerCase()) ||
-    c.rfc.toLowerCase().includes(clientSearch.toLowerCase())
-  );
+  // Calculate totals with proper tax handling
+  const calculateAmounts = () => {
+    const selectedConcept = concepts.find(c => c.id === formData.conceptId);
+    const quantity = parseFloat(formData.quantity) || 0;
+    const unitPrice = parseFloat(formData.unitPrice) || 0;
+    
+    const tasaIVA = selectedConcept?.tasaIVA || 16;
+    const tasaISR = selectedConcept?.tasaRetencionISR || 0;
+    const tasaRetIVA = selectedConcept?.tasaRetencionIVA || 0;
+    const ivaIncluded = selectedConcept?.ivaIncluded || false;
 
-  const filteredConcepts = concepts.filter(c =>
-    c.name.toLowerCase().includes(conceptSearch.toLowerCase()) ||
-    c.claveProdServ.includes(conceptSearch)
-  );
+    let subtotal: number;
+    let iva: number;
+    let retencionISR: number;
+    let retencionIVA: number;
+    let total: number;
 
-  const calculateTotals = (conceptId: string, quantity: number, unitPrice: number) => {
-    const concept = concepts.find(c => c.id === conceptId);
-    if (!concept) return { subtotal: 0, iva: 0, retencionISR: 0, total: 0 };
+    if (ivaIncluded) {
+      // IVA Incluido: Precio ya incluye IVA
+      const totalBruto = quantity * unitPrice;
+      subtotal = parseFloat((totalBruto / (1 + tasaIVA / 100)).toFixed(2));
+      iva = parseFloat((totalBruto - subtotal).toFixed(2));
+      
+      // Retenciones
+      retencionISR = parseFloat((subtotal * (tasaISR / 100)).toFixed(2));
+      retencionIVA = parseFloat((iva * (tasaRetIVA / 100)).toFixed(2));
+      
+      // Total Neto = Total Bruto - Retenciones
+      total = parseFloat((totalBruto - retencionISR - retencionIVA).toFixed(2));
+    } else {
+      // +IVA: Precio no incluye IVA
+      subtotal = parseFloat((quantity * unitPrice).toFixed(2));
+      iva = parseFloat((subtotal * (tasaIVA / 100)).toFixed(2));
+      
+      // Retenciones
+      retencionISR = parseFloat((subtotal * (tasaISR / 100)).toFixed(2));
+      retencionIVA = parseFloat((iva * (tasaRetIVA / 100)).toFixed(2));
+      
+      // Total = Subtotal + IVA - Retenciones
+      total = parseFloat((subtotal + iva - retencionISR - retencionIVA).toFixed(2));
+    }
 
-    const subtotal = quantity * unitPrice;
-    const iva = subtotal * (concept.tasaIVA / 100);
-    const retencionISR = subtotal * (concept.tasaRetencionISR / 100);
-    const total = subtotal + iva - retencionISR;
+    return { subtotal, iva, retencionISR, retencionIVA, total };
+  };
 
-    return { subtotal, iva, retencionISR, total };
+  // Handle create
+  const handleCreate = async () => {
+    try {
+      const companyId = "temp-company-id";
+      const totals = calculateAmounts();
+      
+      const client = clients.find(c => c.id === formData.clientId);
+      const concept = concepts.find(c => c.id === formData.conceptId);
+
+      if (!client || !concept) {
+        toast.error("Selecciona cliente y concepto");
+        return;
+      }
+
+      const result = await createTransaction({
+        companyId,
+        type: "income",
+        date: new Date(formData.date),
+        clientId: formData.clientId,
+        conceptId: formData.conceptId,
+        quantity: parseFloat(formData.quantity),
+        unitPrice: parseFloat(formData.unitPrice),
+        subtotal: totals.subtotal,
+        iva: totals.iva,
+        retencionISR: totals.retencionISR,
+        retencionIVA: totals.retencionIVA,
+        total: totals.total,
+        isProject: formData.isProject,
+        projectName: formData.isProject ? formData.projectName : undefined,
+        numberOfPayments: formData.isProject ? parseInt(formData.numberOfPayments) : undefined,
+        invoiceType: formData.invoiceType,
+        paymentMethod: formData.paymentMethod,
+        paymentForm: formData.paymentForm,
+        paymentConditions: formData.paymentConditions,
+        status: formData.status,
+        paymentStatus: formData.paymentStatus,
+        bankAccountId: formData.bankAccountId || undefined,
+        paymentProofFiles,
+      });
+
+      if (result.success) {
+        toast.success("Cobro creado exitosamente");
+        setShowNewForm(false);
+        setPaymentProofFiles([]);
+        resetForm();
+        await loadData();
+      } else {
+        toast.error(result.error || "Error al crear el cobro");
+      }
+    } catch (error) {
+      console.error("Error creating transaction:", error);
+      toast.error("Error al crear el cobro");
+    }
+  };
+
+  // Handle edit
+  const handleStartEdit = (transaction: SerializedTransaction) => {
+    setEditingId(transaction.id);
+    setFormData({
+      clientId: transaction.clientId || "",
+      conceptId: transaction.conceptId || "",
+      quantity: transaction.quantity?.toString() || "1",
+      unitPrice: transaction.unitPrice?.toString() || "",
+      date: new Date(transaction.date).toISOString().split("T")[0],
+      isProject: transaction.isProject,
+      projectName: transaction.projectName || "",
+      numberOfPayments: transaction.numberOfPayments?.toString() || "1",
+      invoiceType: (transaction.invoiceType as "PPD" | "PUE") || "PUE",
+      paymentMethod: transaction.paymentMethod || "Transferencia",
+      paymentForm: transaction.paymentForm || "03",
+      paymentConditions: transaction.paymentConditions || "",
+      bankAccountId: transaction.bankAccountId || "",
+      paymentStatus: (transaction.paymentStatus as "paid" | "pending" | "debt") || "pending",
+      status: (transaction.status as "pending" | "received" | "cancelled") || "pending",
+    });
+    
+    if (transaction.paymentProofFiles) {
+      try {
+        setPaymentProofFiles(JSON.parse(transaction.paymentProofFiles));
+      } catch {
+        setPaymentProofFiles([]);
+      }
+    }
+    
+    setShowNewForm(true);
+  };
+
+  const handleSaveEdit = async () => {
+    if (!editingId) return;
+
+    try {
+      const totals = calculateAmounts();
+
+      const result = await updateTransaction({
+        id: editingId,
+        date: new Date(formData.date),
+        clientId: formData.clientId,
+        conceptId: formData.conceptId,
+        quantity: parseFloat(formData.quantity),
+        unitPrice: parseFloat(formData.unitPrice),
+        subtotal: totals.subtotal,
+        iva: totals.iva,
+        retencionISR: totals.retencionISR,
+        total: totals.total,
+        invoiceType: formData.invoiceType,
+        paymentMethod: formData.paymentMethod,
+        paymentForm: formData.paymentForm,
+        paymentConditions: formData.paymentConditions,
+        status: formData.status,
+        paymentStatus: formData.paymentStatus,
+        bankAccountId: formData.bankAccountId || undefined,
+        paymentProofFiles,
+      });
+
+      if (result.success) {
+        toast.success("Cobro actualizado exitosamente");
+        setShowNewForm(false);
+        setEditingId(null);
+        setPaymentProofFiles([]);
+        resetForm();
+        await loadData();
+      } else {
+        toast.error(result.error || "Error al actualizar el cobro");
+      }
+    } catch (error) {
+      console.error("Error updating transaction:", error);
+      toast.error("Error al actualizar el cobro");
+    }
+  };
+
+  // Handle delete
+  const handleDeleteClick = (id: string) => {
+    setDeleteTargetId(id);
+    setDeleteConfirmOpen(true);
+  };
+
+  const handleConfirmDelete = async () => {
+    if (!deleteTargetId) return;
+
+    try {
+      const result = await deleteTransaction(deleteTargetId);
+
+      if (result.success) {
+        toast.success("Cobro eliminado exitosamente");
+        await loadData();
+      } else {
+        toast.error(result.error || "Error al eliminar el cobro");
+      }
+    } catch (error) {
+      console.error("Error deleting transaction:", error);
+      toast.error("Error al eliminar el cobro");
+    } finally {
+      setDeleteTargetId(null);
+    }
   };
 
   const resetForm = () => {
@@ -366,990 +335,595 @@ export default function IncomePage() {
       conceptId: "",
       quantity: "1",
       unitPrice: "",
-      date: new Date().toISOString().split('T')[0],
-      status: "pending",
+      date: new Date().toISOString().split("T")[0],
       isProject: false,
       projectName: "",
       numberOfPayments: "1",
-      invoiceType: null,
-      paymentMethod: "Por Definir",
-      paymentForm: "99",
-      paymentConditions: ""
-    });
-    setClientSearch("");
-    setConceptSearch("");
-  };
-
-  const handleConceptChange = (conceptId: string) => {
-    const concept = concepts.find(c => c.id === conceptId);
-    setFormData(prev => ({
-      ...prev,
-      conceptId,
-      unitPrice: concept ? concept.defaultAmount.toString() : ""
-    }));
-  };
-
-  const handleCreate = () => {
-    if (!formData.clientId || !formData.conceptId || !formData.quantity || !formData.unitPrice) {
-      alert("Por favor completa todos los campos obligatorios");
-      return;
-    }
-
-    const client = clients.find(c => c.id === formData.clientId);
-    const concept = concepts.find(c => c.id === formData.conceptId);
-    if (!client || !concept) return;
-
-    const quantity = parseFloat(formData.quantity);
-    const unitPrice = parseFloat(formData.unitPrice);
-    const totals = calculateTotals(formData.conceptId, quantity, unitPrice);
-
-    if (formData.isProject) {
-      // Crear proyecto con pagos parciales
-      const numberOfPayments = parseInt(formData.numberOfPayments);
-      if (numberOfPayments < 2) {
-        alert("Un proyecto debe tener al menos 2 pagos");
-        return;
-      }
-      if (!formData.projectName) {
-        alert("Ingresa el nombre del proyecto");
-        return;
-      }
-
-      const projectId = `proj-${Date.now()}`;
-      const paymentAmount = totals.total / numberOfPayments;
-
-      // Crear el proyecto padre
-      const projectTransaction: IncomeTransaction = {
-        id: projectId,
-        clientId: formData.clientId,
-        clientName: client.company,
-        conceptId: formData.conceptId,
-        conceptName: concept.name,
-        quantity,
-        unitPrice,
-        subtotal: totals.subtotal,
-        iva: totals.iva,
-        retencionISR: totals.retencionISR,
-        total: totals.total,
-        date: formData.date,
-        isProject: true,
-        projectName: formData.projectName,
-        totalProjectAmount: totals.total,
-        numberOfPayments,
-        invoiceType: formData.invoiceType || "PPD",
-        paymentMethod: formData.paymentMethod || "Por Definir",
-        paymentForm: formData.paymentForm,
-        paymentConditions: formData.paymentConditions,
-        invoiceStatus: "pending",
-        isBilled: false,
-        status: "pending"
-      };
-
-      // Crear pagos parciales
-      const partialPayments: IncomeTransaction[] = [];
-      for (let i = 1; i <= numberOfPayments; i++) {
-        const paymentDate = new Date(formData.date);
-        paymentDate.setMonth(paymentDate.getMonth() + (i - 1));
-
-        partialPayments.push({
-          id: `${projectId}-p${i}`,
-          clientId: formData.clientId,
-          clientName: client.company,
-          conceptId: formData.conceptId,
-          conceptName: concept.name,
-          quantity: quantity / numberOfPayments,
-          unitPrice,
-          subtotal: totals.subtotal / numberOfPayments,
-          iva: totals.iva / numberOfPayments,
-          retencionISR: totals.retencionISR / numberOfPayments,
-          total: paymentAmount,
-          date: paymentDate.toISOString().split('T')[0],
-          parentProjectId: projectId,
-          paymentNumber: i,
-          isProject: false,
-          invoiceType: formData.invoiceType || "PPD",
-          paymentMethod: "Por Definir",
-          paymentForm: "99",
-          invoiceStatus: "pending",
-          isBilled: false,
-          status: "pending"
-        });
-      }
-
-      setTransactions(prev => [projectTransaction, ...partialPayments, ...prev]);
-      alert(`✅ Proyecto "${formData.projectName}" creado con ${numberOfPayments} pagos parciales`);
-    } else {
-      // Crear cobro regular
-      const newTransaction: IncomeTransaction = {
-        id: `trans-${Date.now()}`,
-        clientId: formData.clientId,
-        clientName: client.company,
-        conceptId: formData.conceptId,
-        conceptName: concept.name,
-        quantity,
-        unitPrice,
-        subtotal: totals.subtotal,
-        iva: totals.iva,
-        retencionISR: totals.retencionISR,
-        total: totals.total,
-        date: formData.date,
-        isProject: false,
-        invoiceType: formData.invoiceType || "PUE",
-        paymentMethod: formData.paymentMethod || "Transferencia",
-        paymentForm: formData.paymentForm,
-        paymentConditions: formData.paymentConditions,
-        invoiceStatus: "pending",
-        isBilled: false,
-        status: formData.status
-      };
-
-      setTransactions(prev => [newTransaction, ...prev]);
-    }
-
-    setShowNewForm(false);
-    resetForm();
-  };
-
-  const handleStartEdit = (transaction: IncomeTransaction) => {
-    setEditingId(transaction.id);
-    setFormData({
-      clientId: transaction.clientId,
-      conceptId: transaction.conceptId,
-      quantity: transaction.quantity.toString(),
-      unitPrice: transaction.unitPrice.toString(),
-      date: transaction.date,
-      status: transaction.status
+      invoiceType: "PUE",
+      paymentMethod: "Transferencia",
+      paymentForm: "03",
+      paymentConditions: "",
+      bankAccountId: "",
+      paymentStatus: "pending",
+      status: "pending",
     });
   };
 
-  const handleSaveEdit = () => {
-    if (!editingId) return;
+  // Filtering
+  const filteredTransactions = transactions.filter(transaction => {
+    // Search filter
+    const matchesSearch =
+      searchTerm === "" ||
+      transaction.client?.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      transaction.concept?.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      transaction.projectName?.toLowerCase().includes(searchTerm.toLowerCase());
 
-    const client = clients.find(c => c.id === formData.clientId);
-    const concept = concepts.find(c => c.id === formData.conceptId);
-    if (!client || !concept) return;
+    // Status filter
+    const matchesStatus = filterStatus === "all" || transaction.status === filterStatus;
 
-    const quantity = parseFloat(formData.quantity);
-    const unitPrice = parseFloat(formData.unitPrice);
-    const { subtotal, iva, retencionISR, total } = calculateTotals(formData.conceptId, quantity, unitPrice);
+    // Payment status filter
+    const matchesPaymentStatus = filterPaymentStatus === "all" || transaction.paymentStatus === filterPaymentStatus;
 
-    const transaction = transactions.find(t => t.id === editingId);
-    const updatedTransaction: IncomeTransaction = {
-      ...transaction!,
-      clientId: formData.clientId,
-      clientName: client.company,
-      conceptId: formData.conceptId,
-      conceptName: concept.name,
-      quantity,
-      unitPrice,
-      subtotal,
-      iva,
-      retencionISR,
-      total,
-      date: formData.date,
-      status: formData.status
-    };
+    // Bank account filter
+    const matchesBankAccount = filterBankAccount === "all" || transaction.bankAccountId === filterBankAccount;
 
-    setTransactions(prev => prev.map(t => t.id === editingId ? updatedTransaction : t));
-    setEditingId(null);
-    resetForm();
+    // Date filter
+    const matchesDate = filterByDateRange(new Date(transaction.date), period, customStartDate, customEndDate);
+
+    return matchesSearch && matchesStatus && matchesPaymentStatus && matchesBankAccount && matchesDate;
+  });
+
+  // KPIs
+  const totalIncome = filteredTransactions.reduce((sum, t) => sum + Number(t.total || 0), 0);
+  const pendingIncome = filteredTransactions
+    .filter(t => t.paymentStatus === "pending")
+    .reduce((sum, t) => sum + Number(t.total || 0), 0);
+  const receivedIncome = filteredTransactions
+    .filter(t => t.paymentStatus === "paid")
+    .reduce((sum, t) => sum + Number(t.total || 0), 0);
+  const billedCount = filteredTransactions.filter(t => t.isBilled).length;
+
+  // File handling
+  const handleViewFile = (fileUrl: string, fileName: string) => {
+    setPreviewFileUrl(fileUrl);
+    setPreviewFileName(fileName);
   };
 
-  const handleCancelEdit = () => {
-    setEditingId(null);
-    resetForm();
-  };
-
-  const handleDelete = (id: string) => {
-    if (confirm("¿Estás seguro de eliminar este cobro?")) {
-      setTransactions(prev => prev.filter(t => t.id !== id));
-    }
-  };
-
-  const handlePreviewInvoice = async (id: string) => {
-    const transaction = transactions.find(t => t.id === id);
-    if (!transaction) return;
-
-    // Convertir transacción a formato IncomeTransactionForCFDI
-    const cfdiTransaction: IncomeTransactionForCFDI = {
-      id: transaction.id,
-      clientName: transaction.clientName,
-      clientRFC: "XAXX010101000", // TODO: Conectar con DB real
-      clientRegimenFiscal: "601",
-      clientUsoCFDI: "G03",
-      clientDomicilioFiscal: "01000",
-      conceptName: transaction.conceptName,
-      conceptClaveProdServ: "84111506",
-      conceptClaveUnidad: "E48",
-      conceptObjetoImp: "02",
-      quantity: transaction.quantity,
-      unitPrice: transaction.unitPrice,
-      subtotal: transaction.subtotal,
-      ivaRate: transaction.ivaRate,
-      iva: transaction.iva,
-      isrRate: transaction.isrRate || 0,
-      isr: transaction.isr || 0,
-      total: transaction.total,
-      date: transaction.date,
-      invoiceType: transaction.invoiceType || "PUE",
-      paymentMethod: transaction.paymentMethod || "PUE",
-      paymentForm: transaction.paymentForm || "01",
-      paymentConditions: transaction.paymentConditions,
-      serie: "A",
-      folio: String(transactions.length + 1),
-    };
-
-    // Datos del emisor (mock por ahora, TODO: leer desde CompanySettings)
-    const companySettings = {
-      companyRFC: "AAA010101AAA",
-      companyLegalName: "Tu Empresa S.A. de C.V.",
-      fiscalRegime: "601",
-      companyPostalCode: "01000",
-    };
-
-    const result = await previewCFDI(cfdiTransaction, companySettings);
-
-    if (result.success) {
-      const previewUrl = `/invoices/preview-${id}.pdf`;
-      setTransactions(prev => prev.map(t => 
-        t.id === id 
-          ? { ...t, invoiceStatus: "preview" as const, invoicePreviewUrl: previewUrl }
-          : t
-      ));
-      alert(`✅ Preview de factura generado correctamente\n\nDatos validados por SAT\nPuedes revisar el preview antes de timbrar.`);
-    } else {
-      alert(`❌ Error al generar preview:\n${result.error}`);
-    }
-  };
-
-  const handleStampInvoice = async (id: string) => {
-    const transaction = transactions.find(t => t.id === id);
-    if (!transaction) return;
-
-    if (!confirm("¿Estás seguro de timbrar esta factura?\n\nEsta acción consumirá un crédito de FacturaloPlus y generará un CFDI oficial.")) {
-      return;
-    }
-
-    // Convertir transacción a formato IncomeTransactionForCFDI
-    const cfdiTransaction: IncomeTransactionForCFDI = {
-      id: transaction.id,
-      clientName: transaction.clientName,
-      clientRFC: "XAXX010101000", // TODO: Conectar con DB real
-      clientRegimenFiscal: "601",
-      clientUsoCFDI: "G03",
-      clientDomicilioFiscal: "01000",
-      conceptName: transaction.conceptName,
-      conceptClaveProdServ: "84111506",
-      conceptClaveUnidad: "E48",
-      conceptObjetoImp: "02",
-      quantity: transaction.quantity,
-      unitPrice: transaction.unitPrice,
-      subtotal: transaction.subtotal,
-      ivaRate: transaction.ivaRate,
-      iva: transaction.iva,
-      isrRate: transaction.isrRate || 0,
-      isr: transaction.isr || 0,
-      total: transaction.total,
-      date: transaction.date,
-      invoiceType: transaction.invoiceType || "PUE",
-      paymentMethod: transaction.paymentMethod || "PUE",
-      paymentForm: transaction.paymentForm || "01",
-      paymentConditions: transaction.paymentConditions,
-      serie: "A",
-      folio: String(transactions.length + 1),
-    };
-
-    // Datos del emisor (mock por ahora, TODO: leer desde CompanySettings)
-    const companySettings = {
-      companyRFC: "AAA010101AAA",
-      companyLegalName: "Tu Empresa S.A. de C.V.",
-      fiscalRegime: "601",
-      companyPostalCode: "01000",
-    };
-
-    const result = await timbrarCFDI(cfdiTransaction, companySettings);
-
-    if (result.success && result.data) {
-      const invoiceNumber = `FAC-${new Date().getFullYear()}-${String(transactions.length + 1).padStart(3, '0')}`;
-      const uuid = result.data.uuid;
-      const xmlUrl = `/invoices/${invoiceNumber}.xml`; // TODO: Guardar XML real
-      const pdfUrl = `/invoices/${invoiceNumber}.pdf`; // TODO: Guardar PDF real
-
-      setTransactions(prev => prev.map(t => 
-        t.id === id 
-          ? { 
-              ...t, 
-              invoiceStatus: "stamped" as const, 
-              isBilled: true,
-              invoiceNumber,
-              invoiceXmlUrl: xmlUrl,
-              invoiceStampedPdfUrl: pdfUrl
-            }
-          : t
-      ));
-
-      alert(`✅ Factura timbrada exitosamente!\n\nFolio: ${invoiceNumber}\nUUID: ${uuid}\n\nXML y PDF generados por el SAT.`);
-    } else {
-      alert(`❌ Error al timbrar factura:\n${result.error}\n\nVerifica tus credenciales de FacturaloPlus y certificados SAT en Configuración.`);
-    }
-  };
-
-  const handleGenerateComplement = (id: string) => {
-    const transaction = transactions.find(t => t.id === id);
-    if (!transaction) return;
-
-    const complementId = `comp-${Date.now()}`;
-    const complementXml = `/complements/COMP-${transaction.invoiceNumber}-${complementId}.xml`;
-
-    const newComplement = {
-      id: complementId,
-      date: new Date().toISOString().split('T')[0],
-      amount: transaction.total,
-      xmlUrl: complementXml
-    };
-
-    setTransactions(prev => prev.map(t => 
-      t.id === id 
-        ? { 
-            ...t, 
-            paymentComplements: [...(t.paymentComplements || []), newComplement]
-          }
-        : t
-    ));
-
-    alert(`✅ Complemento de pago generado\nFolio: ${complementId}\n(Integración con FacturaloPlus pendiente)`);
-  };
-
-  const handleBill = (id: string) => {
-    // Aquí irá la integración con facturación
-    const invoiceNumber = `FAC-${new Date().getFullYear()}-${String(transactions.length + 1).padStart(3, '0')}`;
-    setTransactions(prev => prev.map(t => 
-      t.id === id ? { ...t, isBilled: true, invoiceNumber } : t
-    ));
-    alert(`Factura generada: ${invoiceNumber}\n(Integración con SAT pendiente)`);
-  };
-
-  const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat('es-MX', { style: 'currency', currency: 'MXN' }).format(amount);
-  };
-
-  const formatDate = (dateString: string) => new Date(dateString).toLocaleDateString('es-MX');
-
-  const getStatusBadge = (status: string) => {
-    const config = {
-      pending: { label: "Pendiente", className: "bg-yellow-500/20 text-yellow-500" },
-      received: { label: "Cobrado", className: "bg-green-500/20 text-green-500" },
-      cancelled: { label: "Cancelado", className: "bg-red-500/20 text-red-500" }
-    }[status] || { label: status, className: "bg-gray-500/20 text-gray-500" };
-    
-    return <Badge className={`${config.className} text-xs`}>{config.label}</Badge>;
-  };
-
-  const totalIncome = transactions.filter(t => t.status !== 'cancelled').reduce((sum, t) => sum + t.total, 0);
-  const pendingIncome = transactions.filter(t => t.status === 'pending').reduce((sum, t) => sum + t.total, 0);
-  const selectedClient = clients.find(c => c.id === formData.clientId);
-  const selectedConcept = concepts.find(c => c.id === formData.conceptId);
-  const currentTotals = formData.conceptId && formData.quantity && formData.unitPrice 
-    ? calculateTotals(formData.conceptId, parseFloat(formData.quantity), parseFloat(formData.unitPrice))
-    : null;
+  if (loading) {
+    return <div className="p-6">Cargando...</div>;
+  }
 
   return (
-    <div className="space-y-6">
+    <div className="p-6 space-y-6">
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold text-white">Cobranza</h1>
-          <p className="text-sm text-gray-400">Gestión de ingresos con datos fiscales integrados</p>
+          <h1 className="text-3xl font-bold">Cobranza</h1>
+          <p className="text-muted-foreground">Gestión de ingresos y cobros</p>
         </div>
-        <div className="flex items-center gap-3">
-          <PeriodFilter
-            selectedPeriod={selectedPeriod}
-            onPeriodChange={setSelectedPeriod}
-            customDateRange={customDateRange}
-            onCustomDateRangeChange={setCustomDateRange}
-          />
-          <Button 
-            onClick={() => setShowNewForm(!showNewForm)}
-            className="bg-gradient-to-r from-blue-500 to-purple-600 text-white hover:from-blue-600 hover:to-purple-700"
-          >
-            {showNewForm ? <><X className="mr-2 h-4 w-4" /> Cancelar</> : <><Plus className="mr-2 h-4 w-4" /> Nuevo Cobro</>}
-          </Button>
-        </div>
+        <Button onClick={() => setShowNewForm(!showNewForm)}>
+          <Plus className="mr-2 h-4 w-4" />
+          {showNewForm ? "Cancelar" : "Nuevo Cobro"}
+        </Button>
       </div>
 
-      {/* Stats */}
-      <div className="grid gap-4 md:grid-cols-3">
-        <Card className="border border-white/10 bg-gradient-to-br from-slate-800/80 to-slate-900/80 backdrop-blur-sm">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium text-gray-400">Total Cobros</CardTitle>
+      {/* KPIs */}
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-sm">Total Cobros</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-white">{transactions.length}</div>
-            <p className="text-xs text-gray-500">{transactions.filter(t => t.isBilled).length} facturados</p>
+            <div className="text-2xl font-bold">${totalIncome.toFixed(2)}</div>
           </CardContent>
         </Card>
-
-        <Card className="border border-white/10 bg-gradient-to-br from-slate-800/80 to-slate-900/80 backdrop-blur-sm">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium text-gray-400">Ingresos Totales</CardTitle>
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-sm">Pendientes</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-white">{formatCurrency(totalIncome)}</div>
-            <p className="text-xs text-gray-500">Cobrado y pendiente</p>
+            <div className="text-2xl font-bold text-yellow-600">${pendingIncome.toFixed(2)}</div>
           </CardContent>
         </Card>
-
-        <Card className="border border-white/10 bg-gradient-to-br from-slate-800/80 to-slate-900/80 backdrop-blur-sm">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium text-gray-400">Pendiente de Cobro</CardTitle>
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-sm">Recibidos</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-yellow-500">{formatCurrency(pendingIncome)}</div>
-            <p className="text-xs text-gray-500">Por cobrar</p>
+            <div className="text-2xl font-bold text-green-600">${receivedIncome.toFixed(2)}</div>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-sm">Facturados</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{billedCount}</div>
           </CardContent>
         </Card>
       </div>
 
-      {/* Search & Filters */}
-      <Card className="border border-white/10 bg-gradient-to-br from-slate-800/80 to-slate-900/80 backdrop-blur-sm">
+      {/* New/Edit Form */}
+      {showNewForm && (
+        <Card>
+          <CardHeader>
+            <CardTitle>{editingId ? "Editar Cobro" : "Nuevo Cobro"}</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <Label>Cliente</Label>
+                <Select value={formData.clientId} onValueChange={(v) => setFormData(prev => ({ ...prev, clientId: v }))}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Seleccionar cliente" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {clients.map(client => (
+                      <SelectItem key={client.id} value={client.id}>
+                        {client.name} - {client.company}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div>
+                <Label>Concepto</Label>
+                <Select value={formData.conceptId} onValueChange={(v) => setFormData(prev => ({ ...prev, conceptId: v }))}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Seleccionar concepto" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {concepts.map(concept => (
+                      <SelectItem key={concept.id} value={concept.id}>
+                        {concept.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div>
+                <Label>Cantidad</Label>
+                <Input
+                  type="number"
+                  value={formData.quantity}
+                  onChange={(e) => setFormData(prev => ({ ...prev, quantity: e.target.value }))}
+                />
+              </div>
+
+              <div>
+                <Label>Precio Unitario</Label>
+                <Input
+                  type="number"
+                  value={formData.unitPrice}
+                  onChange={(e) => setFormData(prev => ({ ...prev, unitPrice: e.target.value }))}
+                />
+              </div>
+
+              <div>
+                <Label>Fecha</Label>
+                <Input
+                  type="date"
+                  value={formData.date}
+                  onChange={(e) => setFormData(prev => ({ ...prev, date: e.target.value }))}
+                />
+              </div>
+
+              <div>
+                <Label>Cuenta Bancaria</Label>
+                <Select
+                  value={formData.bankAccountId || "none"}
+                  onValueChange={(v) => setFormData(prev => ({ ...prev, bankAccountId: v === "none" ? "" : v }))}
+                >
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="none">Sin asignar</SelectItem>
+                    {bankAccounts.map(account => (
+                      <SelectItem key={account.id} value={account.id}>
+                        {account.name} {account.last4 ? `****${account.last4}` : ""}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div>
+                <Label>Estado de Pago</Label>
+                <Select
+                  value={formData.paymentStatus}
+                  onValueChange={(v) => setFormData(prev => ({ ...prev, paymentStatus: v as any }))}
+                >
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="pending">Pendiente</SelectItem>
+                    <SelectItem value="paid">Pagado</SelectItem>
+                    <SelectItem value="debt">Deuda</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div>
+                <Label>Estado</Label>
+                <Select
+                  value={formData.status}
+                  onValueChange={(v) => setFormData(prev => ({ ...prev, status: v as any }))}
+                >
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="pending">Pendiente</SelectItem>
+                    <SelectItem value="received">Recibido</SelectItem>
+                    <SelectItem value="cancelled">Cancelado</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+
+            {/* Project checkbox */}
+            <div className="flex items-center space-x-2">
+              <input
+                type="checkbox"
+                checked={formData.isProject}
+                onChange={(e) => setFormData(prev => ({ ...prev, isProject: e.target.checked }))}
+                className="h-4 w-4"
+              />
+              <Label>Es un proyecto con múltiples pagos</Label>
+            </div>
+
+            {formData.isProject && (
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <Label>Nombre del Proyecto</Label>
+                  <Input
+                    value={formData.projectName}
+                    onChange={(e) => setFormData(prev => ({ ...prev, projectName: e.target.value }))}
+                  />
+                </div>
+                <div>
+                  <Label>Número de Pagos</Label>
+                  <Input
+                    type="number"
+                    value={formData.numberOfPayments}
+                    onChange={(e) => setFormData(prev => ({ ...prev, numberOfPayments: e.target.value }))}
+                  />
+                </div>
+              </div>
+            )}
+
+            {/* File upload */}
+            <div>
+              <Label>Comprobantes de Pago</Label>
+              <FileUpload
+                accept="image/*,application/pdf"
+                category="payment-proofs"
+                maxSize={10 * 1024 * 1024}
+                onUploadComplete={(url) => setPaymentProofFiles(prev => [...prev, url])}
+                onUploadError={(error) => toast.error(error)}
+              />
+              {paymentProofFiles.length > 0 && (
+                <div className="mt-2 space-y-1">
+                  {paymentProofFiles.map((file, idx) => (
+                    <div key={idx} className="flex items-center justify-between text-sm">
+                      <span className="truncate">{file.split('/').pop()}</span>
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        onClick={() => handleViewFile(file, file.split('/').pop() || '')}
+                      >
+                        <Eye className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            {/* Totals */}
+            {formData.unitPrice && formData.quantity && (
+              <div className="bg-muted p-4 rounded space-y-1">
+                <div>Subtotal: ${calculateAmounts().subtotal.toFixed(2)}</div>
+                <div>IVA ({concepts.find(c => c.id === formData.conceptId)?.tasaIVA || 16}%): ${calculateAmounts().iva.toFixed(2)}</div>
+                {calculateAmounts().retencionISR > 0 && (
+                  <div className="text-red-500">Ret. ISR ({concepts.find(c => c.id === formData.conceptId)?.tasaRetencionISR || 0}%): -${calculateAmounts().retencionISR.toFixed(2)}</div>
+                )}
+                {calculateAmounts().retencionIVA > 0 && (
+                  <div className="text-red-500">Ret. IVA ({concepts.find(c => c.id === formData.conceptId)?.tasaRetencionIVA || 0}%): -${calculateAmounts().retencionIVA.toFixed(2)}</div>
+                )}
+                <div className="font-bold text-lg border-t pt-2 mt-2">Total a Cobrar: ${calculateAmounts().total.toFixed(2)}</div>
+              </div>
+            )}
+
+            <div className="flex gap-2">
+              <Button onClick={editingId ? handleSaveEdit : handleCreate}>
+                {editingId ? "Guardar Cambios" : "Crear Cobro"}
+              </Button>
+              <Button variant="outline" onClick={() => {
+                setShowNewForm(false);
+                setEditingId(null);
+                resetForm();
+                setPaymentProofFiles([]);
+              }}>
+                Cancelar
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Filters */}
+      <Card>
         <CardContent className="pt-6">
-          <div className="flex gap-4">
-            <div className="relative flex-1">
-              <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
-              <Input
-                placeholder="Buscar por cliente, concepto o folio..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="pl-10 bg-slate-900 border-white/10 text-white placeholder-gray-400"
+          <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
+            <div>
+              <Label>Buscar</Label>
+              <div className="relative">
+                <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
+                <Input
+                  placeholder="Cliente, concepto..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  className="pl-8"
+                />
+              </div>
+            </div>
+
+            <div>
+              <Label>Estado</Label>
+              <Select value={filterStatus} onValueChange={setFilterStatus}>
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Todos</SelectItem>
+                  <SelectItem value="pending">Pendiente</SelectItem>
+                  <SelectItem value="received">Recibido</SelectItem>
+                  <SelectItem value="cancelled">Cancelado</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div>
+              <Label>Pago</Label>
+              <Select value={filterPaymentStatus} onValueChange={setFilterPaymentStatus}>
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Todos</SelectItem>
+                  <SelectItem value="pending">Pendiente</SelectItem>
+                  <SelectItem value="paid">Pagado</SelectItem>
+                  <SelectItem value="debt">Deuda</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div>
+              <Label>Cuenta</Label>
+              <Select value={filterBankAccount} onValueChange={setFilterBankAccount}>
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Todas</SelectItem>
+                  {bankAccounts.map(account => (
+                    <SelectItem key={account.id} value={account.id}>
+                      {account.name} {account.last4 ? `****${account.last4}` : ""}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div>
+              <Label>Período</Label>
+              <PeriodFilter
+                value={period}
+                onChange={setPeriod}
+                customStartDate={customStartDate}
+                customEndDate={customEndDate}
+                onCustomDateChange={(start, end) => {
+                  setCustomStartDate(start);
+                  setCustomEndDate(end);
+                }}
               />
             </div>
-            <Select value={selectedStatus} onValueChange={setSelectedStatus}>
-              <SelectTrigger className="w-[180px] bg-slate-900 border-white/10 text-white">
-                <SelectValue placeholder="Estado" />
-              </SelectTrigger>
-              <SelectContent className="bg-gray-800 border-gray-600">
-                <SelectItem value="all" className="text-white">Todos</SelectItem>
-                <SelectItem value="pending" className="text-white">Pendiente</SelectItem>
-                <SelectItem value="received" className="text-white">Cobrado</SelectItem>
-                <SelectItem value="cancelled" className="text-white">Cancelado</SelectItem>
-              </SelectContent>
-            </Select>
           </div>
         </CardContent>
       </Card>
 
       {/* Transactions Table */}
-      <Card className="border border-white/10 bg-gradient-to-br from-slate-800/80 to-slate-900/80 backdrop-blur-sm">
+      <Card>
         <CardHeader>
-          <CardTitle className="text-white">Lista de Cobros</CardTitle>
-          <CardDescription className="text-gray-400">
-            {filteredTransactions.length} cobro(s) encontrado(s)
-          </CardDescription>
+          <CardTitle>Cobros ({filteredTransactions.length})</CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="overflow-x-auto">
-            <Table>
-              <TableHeader>
-                <TableRow className="border-white/10">
-                  <TableHead className="text-gray-400 w-[40px]"></TableHead>
-                  <TableHead className="text-gray-400 w-[120px]">Fecha</TableHead>
-                  <TableHead className="text-gray-400 w-[250px]">Cliente/Proyecto</TableHead>
-                  <TableHead className="text-gray-400 w-[200px]">Concepto</TableHead>
-                  <TableHead className="text-gray-400 w-[80px]">Cant.</TableHead>
-                  <TableHead className="text-gray-400 w-[100px]">P. Unit.</TableHead>
-                  <TableHead className="text-gray-400 w-[100px]">Subtotal</TableHead>
-                  <TableHead className="text-gray-400 w-[100px]">IVA</TableHead>
-                  <TableHead className="text-gray-400 w-[120px]">Total</TableHead>
-                  <TableHead className="text-gray-400 w-[120px]">Estado</TableHead>
-                  <TableHead className="text-gray-400 w-[150px]">Acciones</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {/* New Form Row */}
-                {showNewForm && (
-                  <TableRow className="border-white/10 bg-blue-500/5">
-                    <TableCell className="p-2 w-[40px]"></TableCell>
-                    <TableCell className="p-2">
-                      <Input
-                        type="date"
-                        value={formData.date}
-                        onChange={(e) => setFormData(prev => ({ ...prev, date: e.target.value }))}
-                        className="bg-gray-800 border-blue-500/30 text-white text-sm h-8"
-                      />
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead className="w-[40px]"></TableHead>
+                <TableHead>Fecha</TableHead>
+                <TableHead>Cliente</TableHead>
+                <TableHead>Concepto</TableHead>
+                <TableHead>Cuenta</TableHead>
+                <TableHead className="text-right">Total</TableHead>
+                <TableHead>Estado Pago</TableHead>
+                <TableHead>Comprobante</TableHead>
+                <TableHead className="text-right">Acciones</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {filteredTransactions.map((transaction) => (
+                <Fragment key={transaction.id}>
+                  {/* Main Transaction Row */}
+                  <TableRow
+                    className={`${transaction.isProject ? 'cursor-pointer hover:bg-muted/50' : ''}`}
+                    onClick={() => transaction.isProject && toggleProject(transaction.id)}
+                  >
+                    <TableCell>
+                      {transaction.isProject && (
+                        expandedProjects.has(transaction.id) ? (
+                          <ChevronDown className="h-4 w-4" />
+                        ) : (
+                          <ChevronRight className="h-4 w-4" />
+                        )
+                      )}
                     </TableCell>
-                    <TableCell className="p-2">
-                      <div className="space-y-1">
-                        <div className="flex gap-1">
-                          <Select value={formData.clientId} onValueChange={(value) => setFormData(prev => ({ ...prev, clientId: value }))}>
-                            <SelectTrigger className="bg-gray-800 border-blue-500/30 text-white text-sm h-8">
-                              <SelectValue placeholder="Seleccionar cliente..." />
-                            </SelectTrigger>
-                            <SelectContent className="bg-gray-800 border-gray-600">
-                              <div className="p-2">
-                                <Input
-                                  placeholder="Buscar cliente..."
-                                  value={clientSearch}
-                                  onChange={(e) => setClientSearch(e.target.value)}
-                                  className="bg-gray-900 border-gray-600 text-white text-sm h-7 mb-2"
-                                />
-                              </div>
-                              {filteredClients.map((client) => (
-                                <SelectItem key={client.id} value={client.id} className="text-white text-sm hover:bg-gray-700">
-                                  {client.company} ({client.rfc})
-                                </SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
-                          <Button size="sm" variant="outline" className="h-8 w-8 p-0 border-blue-500/30" title="Nuevo cliente">
-                            <UserPlus className="h-4 w-4" />
-                          </Button>
-                        </div>
-                        {selectedClient && (
-                          <div className="text-xs text-gray-400">RFC: {selectedClient.rfc}</div>
-                        )}
-                      </div>
+                    <TableCell>{new Date(transaction.date).toLocaleDateString()}</TableCell>
+                    <TableCell>
+                      {transaction.client?.name || "-"}
+                      {transaction.isProject && (
+                        <Badge variant="outline" className="ml-2">Proyecto</Badge>
+                      )}
                     </TableCell>
-                    <TableCell className="p-2">
-                      <div className="space-y-1">
-                        <div className="flex gap-1">
-                          <Select value={formData.conceptId} onValueChange={handleConceptChange}>
-                            <SelectTrigger className="bg-gray-800 border-blue-500/30 text-white text-sm h-8">
-                              <SelectValue placeholder="Seleccionar concepto..." />
-                            </SelectTrigger>
-                            <SelectContent className="bg-gray-800 border-gray-600">
-                              <div className="p-2">
-                                <Input
-                                  placeholder="Buscar concepto..."
-                                  value={conceptSearch}
-                                  onChange={(e) => setConceptSearch(e.target.value)}
-                                  className="bg-gray-900 border-gray-600 text-white text-sm h-7 mb-2"
-                                />
-                              </div>
-                              {filteredConcepts.map((concept) => (
-                                <SelectItem key={concept.id} value={concept.id} className="text-white text-sm hover:bg-gray-700">
-                                  {concept.name} - {formatCurrency(concept.defaultAmount)}
-                                </SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
-                          <Button size="sm" variant="outline" className="h-8 w-8 p-0 border-blue-500/30" title="Nuevo concepto">
-                            <TagIcon className="h-4 w-4" />
-                          </Button>
-                        </div>
-                        {selectedConcept && (
-                          <div className="text-xs text-gray-400">
-                            IVA: {selectedConcept.tasaIVA}% | Ret: {selectedConcept.tasaRetencionISR}%
-                          </div>
-                        )}
-                      </div>
+                    <TableCell>{transaction.concept?.name || "-"}</TableCell>
+                    <TableCell>
+                      {bankAccounts.find(a => a.id === transaction.bankAccountId)?.name || "-"}
                     </TableCell>
-                    <TableCell className="p-2">
-                      <Input
-                        type="number"
-                        step="0.01"
-                        value={formData.quantity}
-                        onChange={(e) => setFormData(prev => ({ ...prev, quantity: e.target.value }))}
-                        className="bg-gray-800 border-blue-500/30 text-white text-sm h-8"
-                      />
+                    <TableCell className="text-right">${Number(transaction.total || 0).toFixed(2)}</TableCell>
+                    <TableCell>
+                      <Badge variant={
+                        transaction.paymentStatus === "paid" ? "default" :
+                        transaction.paymentStatus === "pending" ? "secondary" : "destructive"
+                      }>
+                        {transaction.paymentStatus === "paid" ? "Pagado" :
+                         transaction.paymentStatus === "pending" ? "Pendiente" : "Deuda"}
+                      </Badge>
                     </TableCell>
-                    <TableCell className="p-2">
-                      <Input
-                        type="number"
-                        step="0.01"
-                        value={formData.unitPrice}
-                        onChange={(e) => setFormData(prev => ({ ...prev, unitPrice: e.target.value }))}
-                        className="bg-gray-800 border-blue-500/30 text-white text-sm h-8"
-                      />
-                    </TableCell>
-                    <TableCell className="p-2 text-white text-sm">
-                      {currentTotals ? formatCurrency(currentTotals.subtotal) : '$0.00'}
-                    </TableCell>
-                    <TableCell className="p-2 text-green-400 text-sm">
-                      {currentTotals ? formatCurrency(currentTotals.iva) : '$0.00'}
-                    </TableCell>
-                    <TableCell className="p-2 text-white font-semibold text-sm">
-                      {currentTotals ? formatCurrency(currentTotals.total) : '$0.00'}
-                    </TableCell>
-                    <TableCell className="p-2">
-                      <Select value={formData.status} onValueChange={(value: any) => setFormData(prev => ({ ...prev, status: value }))}>
-                        <SelectTrigger className="bg-gray-800 border-blue-500/30 text-white text-sm h-8">
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent className="bg-gray-800 border-gray-600">
-                          <SelectItem value="pending" className="text-white">Pendiente</SelectItem>
-                          <SelectItem value="received" className="text-white">Cobrado</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </TableCell>
-                    <TableCell className="p-2">
-                      <div className="flex gap-1">
-                        <Button size="sm" onClick={handleCreate} className="h-8 bg-green-600 hover:bg-green-700">
-                          <Check className="h-4 w-4" />
+                    <TableCell>
+                      {transaction.paymentProofFiles && JSON.parse(transaction.paymentProofFiles).length > 0 ? (
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            const files = JSON.parse(transaction.paymentProofFiles!);
+                            handleViewFile(files[0], files[0].split('/').pop() || '');
+                          }}
+                        >
+                          <Eye className="h-4 w-4" />
                         </Button>
-                        <Button size="sm" variant="ghost" onClick={() => { setShowNewForm(false); resetForm(); }} className="h-8 text-red-400 hover:bg-red-500/10">
-                          <X className="h-4 w-4" />
+                      ) : "-"}
+                    </TableCell>
+                    <TableCell className="text-right">
+                      <div className="flex justify-end gap-2">
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleStartEdit(transaction);
+                          }}
+                        >
+                          <Edit className="h-4 w-4" />
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleDeleteClick(transaction.id);
+                          }}
+                        >
+                          <Trash2 className="h-4 w-4 text-red-500" />
                         </Button>
                       </div>
                     </TableCell>
                   </TableRow>
-                )}
 
-                {/* Extended Fields Row - Proyecto y Facturación */}
-                {showNewForm && (
-                  <TableRow className="border-white/10 bg-blue-500/5">
-                    <TableCell colSpan={10} className="p-4">
-                      <div className="grid grid-cols-2 gap-4">
-                        {/* Columna 1: Datos de Proyecto */}
-                        <Card className="bg-slate-800/50 border-blue-500/30">
-                          <CardContent className="pt-4 space-y-3">
-                            <div className="flex items-center gap-2">
-                              <input
-                                type="checkbox"
-                                id="isProject"
-                                checked={formData.isProject}
-                                onChange={(e) => setFormData(prev => ({ ...prev, isProject: e.target.checked }))}
-                                className="w-4 h-4"
-                              />
-                              <Label htmlFor="isProject" className="text-white text-sm font-medium">
-                                ¿Es un Proyecto con Pagos Parciales?
-                              </Label>
-                            </div>
-                            
-                            {formData.isProject && (
-                              <>
-                                <div>
-                                  <Label className="text-gray-400 text-xs">Nombre del Proyecto</Label>
-                                  <Input
-                                    value={formData.projectName}
-                                    onChange={(e) => setFormData(prev => ({ ...prev, projectName: e.target.value }))}
-                                    placeholder="Ej: Implementación Sistema ERP"
-                                    className="bg-gray-800 border-blue-500/30 text-white text-sm mt-1"
-                                  />
-                                </div>
-                                <div>
-                                  <Label className="text-gray-400 text-xs">Número de Pagos</Label>
-                                  <Input
-                                    type="number"
-                                    min="2"
-                                    max="12"
-                                    value={formData.numberOfPayments}
-                                    onChange={(e) => setFormData(prev => ({ ...prev, numberOfPayments: e.target.value }))}
-                                    className="bg-gray-800 border-blue-500/30 text-white text-sm mt-1"
-                                  />
-                                  <p className="text-xs text-gray-500 mt-1">
-                                    {currentTotals && formData.numberOfPayments 
-                                      ? `${formData.numberOfPayments} pagos de ${formatCurrency(currentTotals.total / parseInt(formData.numberOfPayments))}`
-                                      : 'Ingresa cantidad para calcular'}
-                                  </p>
-                                </div>
-                              </>
-                            )}
-                          </CardContent>
-                        </Card>
-
-                        {/* Columna 2: Datos de Facturación */}
-                        <Card className="bg-slate-800/50 border-purple-500/30">
-                          <CardContent className="pt-4 space-y-3">
-                            <Label className="text-white text-sm font-medium">Datos de Facturación</Label>
-                            
-                            <div className="grid grid-cols-2 gap-2">
-                              <div>
-                                <Label className="text-gray-400 text-xs">Tipo de Comprobante</Label>
-                                <Select 
-                                  value={formData.invoiceType || "PUE"} 
-                                  onValueChange={(value: any) => {
-                                    setFormData(prev => ({ 
-                                      ...prev, 
-                                      invoiceType: value,
-                                      paymentMethod: value === "PPD" ? "Por Definir" : prev.paymentMethod,
-                                      paymentForm: value === "PPD" ? "99" : prev.paymentForm
-                                    }));
-                                  }}
-                                >
-                                  <SelectTrigger className="bg-gray-800 border-purple-500/30 text-white text-sm h-8 mt-1">
-                                    <SelectValue />
-                                  </SelectTrigger>
-                                  <SelectContent className="bg-gray-800 border-gray-600">
-                                    <SelectItem value="PUE" className="text-white">PUE - Pago en Una Exhibición</SelectItem>
-                                    <SelectItem value="PPD" className="text-white">PPD - Pago en Parcialidades</SelectItem>
-                                  </SelectContent>
-                                </Select>
-                              </div>
-
-                              <div>
-                                <Label className="text-gray-400 text-xs">Forma de Pago SAT</Label>
-                                <Select 
-                                  value={formData.paymentForm} 
-                                  onValueChange={(value) => setFormData(prev => ({ ...prev, paymentForm: value }))}
-                                >
-                                  <SelectTrigger className="bg-gray-800 border-purple-500/30 text-white text-sm h-8 mt-1">
-                                    <SelectValue />
-                                  </SelectTrigger>
-                                  <SelectContent className="bg-gray-800 border-gray-600">
-                                    <SelectItem value="01" className="text-white">01 - Efectivo</SelectItem>
-                                    <SelectItem value="02" className="text-white">02 - Cheque</SelectItem>
-                                    <SelectItem value="03" className="text-white">03 - Transferencia</SelectItem>
-                                    <SelectItem value="04" className="text-white">04 - Tarjeta de Crédito</SelectItem>
-                                    <SelectItem value="28" className="text-white">28 - Tarjeta de Débito</SelectItem>
-                                    <SelectItem value="99" className="text-white">99 - Por Definir</SelectItem>
-                                  </SelectContent>
-                                </Select>
-                              </div>
-                            </div>
-
-                            <div>
-                              <Label className="text-gray-400 text-xs">Método de Pago</Label>
-                              <Input
-                                value={formData.paymentMethod}
-                                onChange={(e) => setFormData(prev => ({ ...prev, paymentMethod: e.target.value }))}
-                                placeholder="Ej: Transferencia, Efectivo..."
-                                className="bg-gray-800 border-purple-500/30 text-white text-sm mt-1"
-                                disabled={formData.invoiceType === "PPD"}
-                              />
-                              {formData.invoiceType === "PPD" && (
-                                <p className="text-xs text-yellow-500 mt-1">PPD: Método se define al recibir cada pago</p>
-                              )}
-                            </div>
-
-                            <div>
-                              <Label className="text-gray-400 text-xs">Condiciones de Pago</Label>
-                              <Input
-                                value={formData.paymentConditions}
-                                onChange={(e) => setFormData(prev => ({ ...prev, paymentConditions: e.target.value }))}
-                                placeholder="Ej: Net 30, Inmediato..."
-                                className="bg-gray-800 border-purple-500/30 text-white text-sm mt-1"
-                              />
-                            </div>
-                          </CardContent>
-                        </Card>
-                      </div>
-                    </TableCell>
-                  </TableRow>
-                )}
-
-                {/* Existing Transactions with Accordion */}
-                {filteredTransactions.map((transaction) => (
-                  <Fragment key={transaction.id}>
-                    {/* Main Transaction Row */}
-                    <TableRow 
-                      className={`border-white/10 hover:bg-white/5 ${transaction.isProject ? 'cursor-pointer' : ''}`}
-                      onClick={() => transaction.isProject && toggleProject(transaction.id)}
-                    >
-                      {/* Columna expandir/contraer */}
-                      <TableCell className="p-3 w-[40px]">
-                        {transaction.isProject && (
-                          <div className="text-gray-400">
-                            {expandedProjects.has(transaction.id) ? (
-                              <ChevronDown className="h-4 w-4" />
-                            ) : (
-                              <ChevronRight className="h-4 w-4" />
-                            )}
-                          </div>
-                        )}
+                  {/* Project Payments */}
+                  {transaction.isProject && expandedProjects.has(transaction.id) && transaction.projectPayments?.map((payment, idx) => (
+                    <TableRow key={payment.id} className="bg-muted/30">
+                      <TableCell></TableCell>
+                      <TableCell className="pl-8">
+                        {new Date(payment.date).toLocaleDateString()}
+                        <Badge variant="outline" className="ml-2">
+                          Pago {payment.paymentNumber}/{transaction.numberOfPayments}
+                        </Badge>
                       </TableCell>
-
-                      <TableCell className="p-3 text-gray-300 text-sm">{formatDate(transaction.date)}</TableCell>
-                      
-                      <TableCell className="p-3">
-                        <div className="space-y-1">
-                          <div className="flex items-center gap-2">
-                            {transaction.isProject && <FolderOpen className="h-4 w-4 text-blue-400" />}
-                            <div className="text-white font-medium text-sm">
-                              {transaction.isProject ? transaction.projectName : transaction.clientName}
-                            </div>
-                          </div>
-                          {/* Segunda línea: Datos fiscales */}
-                          <div className="text-xs text-gray-500">
-                            {transaction.invoiceType && (
-                              <>
-                                <span className={transaction.invoiceType === "PPD" ? "text-yellow-400" : "text-green-400"}>
-                                  {transaction.invoiceType}
-                                </span>
-                                {' • '}
-                                {transaction.paymentMethod}
-                                {' • '}
-                                Forma: {transaction.paymentForm}
-                                {transaction.paymentConditions && (
-                                  <>
-                                    {' • '}
-                                    {transaction.paymentConditions}
-                                  </>
-                                )}
-                              </>
-                            )}
-                          </div>
-                        </div>
+                      <TableCell>{payment.client?.name || "-"}</TableCell>
+                      <TableCell>{payment.concept?.name || "-"}</TableCell>
+                      <TableCell>
+                        {bankAccounts.find(a => a.id === payment.bankAccountId)?.name || "-"}
                       </TableCell>
-
-                      <TableCell className="p-3">
-                        <div className="text-gray-300 text-sm">{transaction.conceptName}</div>
-                        {transaction.isProject && (
-                          <div className="text-xs text-blue-400">
-                            {transaction.numberOfPayments} pagos • {formatCurrency(transaction.total / (transaction.numberOfPayments || 1))}/pago
-                          </div>
-                        )}
+                      <TableCell className="text-right">${Number(payment.total || 0).toFixed(2)}</TableCell>
+                      <TableCell>
+                        <Badge variant={
+                          payment.paymentStatus === "paid" ? "default" :
+                          payment.paymentStatus === "pending" ? "secondary" : "destructive"
+                        }>
+                          {payment.paymentStatus === "paid" ? "Pagado" :
+                           payment.paymentStatus === "pending" ? "Pendiente" : "Deuda"}
+                        </Badge>
                       </TableCell>
-
-                      <TableCell className="p-3 text-white text-sm text-center">{transaction.quantity}</TableCell>
-                      <TableCell className="p-3 text-white text-sm">{formatCurrency(transaction.unitPrice)}</TableCell>
-                      <TableCell className="p-3 text-white text-sm">{formatCurrency(transaction.subtotal)}</TableCell>
-                      <TableCell className="p-3 text-green-400 text-sm">+{formatCurrency(transaction.iva)}</TableCell>
-                      <TableCell className="p-3 text-white font-semibold text-sm">{formatCurrency(transaction.total)}</TableCell>
-                      
-                      <TableCell className="p-3">
-                        <div className="space-y-1">
-                          {getStatusBadge(transaction.status)}
-                          {transaction.invoiceNumber && (
-                            <div className="text-xs text-blue-400">{transaction.invoiceNumber}</div>
-                          )}
-                          {transaction.invoiceStatus === "preview" && (
-                            <Badge className="bg-yellow-500/20 text-yellow-500 text-xs">Preview</Badge>
-                          )}
-                          {transaction.invoiceStatus === "stamped" && (
-                            <Badge className="bg-green-500/20 text-green-500 text-xs">Timbrado</Badge>
-                          )}
-                        </div>
-                      </TableCell>
-                      
-                      <TableCell className="p-3">
-                        <div className="flex items-center gap-1">
-                          {/* Botón Preview */}
-                          {!transaction.isBilled && transaction.invoiceStatus === "pending" && (
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={(e) => { e.stopPropagation(); handlePreviewInvoice(transaction.id); }}
-                              className="h-8 text-blue-400 hover:bg-blue-500/10"
-                              title="Preview Factura"
-                            >
-                              <Eye className="h-4 w-4" />
-                            </Button>
-                          )}
-
-                          {/* Botón Timbrar */}
-                          {transaction.invoiceStatus === "preview" && (
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={(e) => { e.stopPropagation(); handleStampInvoice(transaction.id); }}
-                              className="h-8 text-green-400 hover:bg-green-500/10"
-                              title="Timbrar"
-                            >
-                              <FileCheck className="h-4 w-4" />
-                            </Button>
-                          )}
-
-                          {/* Botón Complemento (solo para PPD timbrados y pagados) */}
-                          {transaction.invoiceType === "PPD" && 
-                           transaction.invoiceStatus === "stamped" && 
-                           transaction.status === "received" && 
-                           !transaction.parentProjectId && (
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={(e) => { e.stopPropagation(); handleGenerateComplement(transaction.id); }}
-                              className="h-8 text-purple-400 hover:bg-purple-500/10"
-                              title="Complemento de Pago"
-                            >
-                              <FileText className="h-4 w-4" />
-                            </Button>
-                          )}
-
+                      <TableCell>
+                        {payment.paymentProofFiles && JSON.parse(payment.paymentProofFiles).length > 0 ? (
                           <Button
-                            variant="ghost"
                             size="sm"
-                            onClick={(e) => { e.stopPropagation(); handleDelete(transaction.id); }}
-                            className="h-8 text-red-400 hover:bg-red-500/10"
-                            title="Eliminar"
+                            variant="ghost"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              const files = JSON.parse(payment.paymentProofFiles!);
+                              handleViewFile(files[0], files[0].split('/').pop() || '');
+                            }}
                           >
-                            <Trash2 className="h-4 w-4" />
+                            <Eye className="h-4 w-4" />
+                          </Button>
+                        ) : "-"}
+                      </TableCell>
+                      <TableCell className="text-right">
+                        <div className="flex justify-end gap-2">
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleStartEdit(payment);
+                            }}
+                          >
+                            <Edit className="h-4 w-4" />
                           </Button>
                         </div>
                       </TableCell>
                     </TableRow>
-
-                    {/* Pagos Parciales (si el proyecto está expandido) */}
-                    {transaction.isProject && expandedProjects.has(transaction.id) && (
-                      <>
-                        {getProjectPayments(transaction.id).map((payment) => (
-                          <TableRow 
-                            key={payment.id} 
-                            className="border-white/10 bg-slate-800/40 hover:bg-slate-800/60"
-                          >
-                            {/* Sangría visual */}
-                            <TableCell className="p-3 w-[40px]"></TableCell>
-                            <TableCell className="p-3 pl-12 text-gray-400 text-sm">
-                              {formatDate(payment.date)}
-                            </TableCell>
-                            
-                            <TableCell className="p-3 pl-12">
-                              <div className="space-y-1">
-                                <div className="text-gray-300 text-sm flex items-center gap-2">
-                                  <span className="text-xs bg-blue-500/20 text-blue-400 px-2 py-0.5 rounded">
-                                    Pago {payment.paymentNumber}/{transaction.numberOfPayments}
-                                  </span>
-                                  {payment.clientName}
-                                </div>
-                                {/* Segunda línea: Datos fiscales del pago parcial */}
-                                <div className="text-xs text-gray-500">
-                                  {payment.paymentMethod !== "Por Definir" ? (
-                                    <>
-                                      {payment.paymentMethod}
-                                      {' • '}
-                                      Forma: {payment.paymentForm}
-                                    </>
-                                  ) : (
-                                    <span className="text-yellow-500">Método de pago pendiente</span>
-                                  )}
-                                </div>
-                              </div>
-                            </TableCell>
-
-                            <TableCell className="p-3 pl-12 text-gray-400 text-sm">{payment.conceptName}</TableCell>
-                            <TableCell className="p-3 text-gray-300 text-sm text-center">{payment.quantity.toFixed(2)}</TableCell>
-                            <TableCell className="p-3 text-gray-300 text-sm">{formatCurrency(payment.unitPrice)}</TableCell>
-                            <TableCell className="p-3 text-gray-300 text-sm">{formatCurrency(payment.subtotal)}</TableCell>
-                            <TableCell className="p-3 text-green-400 text-sm">+{formatCurrency(payment.iva)}</TableCell>
-                            <TableCell className="p-3 text-white font-semibold text-sm">{formatCurrency(payment.total)}</TableCell>
-                            
-                            <TableCell className="p-3">
-                              <div className="space-y-1">
-                                {getStatusBadge(payment.status)}
-                                {payment.paymentComplements && payment.paymentComplements.length > 0 && (
-                                  <div className="text-xs text-purple-400">
-                                    {payment.paymentComplements.length} complemento(s)
-                                  </div>
-                                )}
-                              </div>
-                            </TableCell>
-                            
-                            <TableCell className="p-3">
-                              <div className="flex items-center gap-1">
-                                {/* Botón Complemento para pago parcial */}
-                                {payment.status === "received" && transaction.invoiceStatus === "stamped" && (
-                                  <Button
-                                    variant="ghost"
-                                    size="sm"
-                                    onClick={() => handleGenerateComplement(payment.id)}
-                                    className="h-8 text-purple-400 hover:bg-purple-500/10"
-                                    title="Complemento de Pago"
-                                  >
-                                    <FileText className="h-4 w-4" />
-                                  </Button>
-                                )}
-                              </div>
-                            </TableCell>
-                          </TableRow>
-                        ))}
-                      </>
-                    )}
-                  </Fragment>
-                ))}
-              </TableBody>
-            </Table>
-          </div>
+                  ))}
+                </Fragment>
+              ))}
+            </TableBody>
+          </Table>
         </CardContent>
       </Card>
+
+      {/* File Preview Modal */}
+      {previewFileUrl && (
+        <FilePreviewModal
+          fileUrl={previewFileUrl}
+          fileName={previewFileName}
+          isOpen={!!previewFileUrl}
+          onClose={() => {
+            setPreviewFileUrl(null);
+            setPreviewFileName("");
+          }}
+        />
+      )}
+
+      {/* Delete Confirmation Dialog */}
+      <ConfirmDialog
+        isOpen={deleteConfirmOpen}
+        onClose={() => setDeleteConfirmOpen(false)}
+        onConfirm={handleConfirmDelete}
+        title="Eliminar Cobro"
+        description="¿Estás seguro de que deseas eliminar este cobro? Esta acción no se puede deshacer."
+        confirmText="Eliminar"
+        cancelText="Cancelar"
+        variant="destructive"
+      />
     </div>
   );
 }
+

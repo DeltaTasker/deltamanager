@@ -35,58 +35,64 @@ model Company {
   users            UserCompany[]
   subscriptions    Subscription?
   invoices         Invoice[]
+  proposals        Proposal[]
   expenses         Expense[]
   payrolls         Payroll[]
   auditLogs        AuditLog[]
   transactions     Transaction[]
+  clients          Client[]
+  providers        Provider[]
+  employees        Employee[]
+  concepts         Concept[]
   settings         CompanySettings?
+  bankAccounts     BankAccount[]
 }
 
 model CompanySettings {
-  id        String   @id @default(cuid())
-  companyId String   @unique
-  
+  id        String @id @default(cuid())
+  companyId String @unique
+
   // General Settings
-  companyLegalName String?
-  companyRFC       String?
-  companyAddress   String?
+  companyLegalName  String?
+  companyRFC        String?
+  companyAddress    String?
   companyPostalCode String?
-  companyPhone     String?
-  companyEmail     String?
-  companyWebsite   String?
-  companyLogoUrl   String? // URL o path al logo
-  
+  companyPhone      String?
+  companyEmail      String?
+  companyWebsite    String?
+  companyLogoUrl    String? // URL o path al logo
+
   // Fiscal Settings (Emisor CFDI)
-  fiscalRegime     String? // Régimen Fiscal SAT
-  
+  fiscalRegime String? // Régimen Fiscal SAT
+
   // FacturaloPlus Settings (Encrypted)
   facturaloApiKey  String?
   facturaloCerPEM  String? // Certificado SAT en PEM
   facturaloKeyPEM  String? // Llave privada SAT en PEM
   facturaloKeyPass String? // Contraseña de la llave privada
-  
+
   // Stripe Settings (Encrypted)
-  stripeSecretKey     String?
+  stripeSecretKey      String?
   stripePublishableKey String?
-  stripeWebhookSecret String?
-  
+  stripeWebhookSecret  String?
+
   // File Storage Settings
   uploadMaxSize    Int?    @default(10485760) // 10MB default
   allowedFileTypes String? @default("pdf,xml,zip,jpg,jpeg,png")
-  
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
-  
+
   company Company @relation(fields: [companyId], references: [id], onDelete: Cascade)
 }
 
 model Role {
-  id          String   @id @default(cuid())
-  name        String   @unique
+  id          String        @id @default(cuid())
+  name        String        @unique
   description String?
-  permissions String   @default("{}")
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  permissions String        @default("{}")
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
   users       UserCompany[]
 }
 
@@ -106,53 +112,131 @@ model UserCompany {
 }
 
 model Subscription {
-  id                 String   @id @default(cuid())
-  companyId          String   @unique
+  id                 String    @id @default(cuid())
+  companyId          String    @unique
   plan               String
   status             String
-  seats              Int      @default(1)
+  seats              Int       @default(1)
   stripeSubscription String?
   stripePriceId      String?
   stripeCustomerId   String?
   trialEndsAt        DateTime?
-  cancelAtPeriodEnd  Boolean  @default(false)
-  createdAt          DateTime @default(now())
-  updatedAt          DateTime @updatedAt
+  cancelAtPeriodEnd  Boolean   @default(false)
+  createdAt          DateTime  @default(now())
+  updatedAt          DateTime  @updatedAt
 
-  company Company @relation(fields: [companyId], references: [id])
+  company  Company   @relation(fields: [companyId], references: [id])
   payments Payment[]
 }
 
 model Payment {
-  id                    String   @id @default(cuid())
+  id                    String    @id @default(cuid())
   subscriptionId        String
   amount                Decimal
-  currency              String   @default("MXN")
+  currency              String    @default("MXN")
   status                String
   stripeInvoiceId       String?
   stripeChargeId        String?
   stripePaymentIntentId String?
   paidAt                DateTime?
-  createdAt             DateTime @default(now())
+  createdAt             DateTime  @default(now())
 
   subscription Subscription @relation(fields: [subscriptionId], references: [id])
 }
 
 model Invoice {
-  id            String   @id @default(cuid())
-  companyId     String
-  customerName  String
-  total         Decimal
-  status        String   @default("draft")
-  cfdiUuid      String?
-  issueDate     DateTime?
-  dueDate       DateTime?
-  xmlUrl        String?
-  pdfUrl        String?
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
+  id           String    @id @default(cuid())
+  companyId    String
+  customerName String
+  total        Decimal
+  status       String    @default("draft")
+  cfdiUuid     String?
+  issueDate    DateTime?
+  dueDate      DateTime?
+  xmlUrl       String?
+  pdfUrl       String?
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
 
   company Company @relation(fields: [companyId], references: [id])
+}
+
+model Proposal {
+  id          String  @id @default(cuid())
+  companyId   String
+  clientId    String?
+  clientName  String
+  clientEmail String?
+  clientPhone String?
+  title       String
+  description String?
+
+  // Montos y cálculos
+  subtotal Float
+  tax      Float  @default(0)
+  discount Float  @default(0)
+  total    Float
+  currency String @default("MXN")
+
+  // Seguimiento
+  status      String    @default("draft") // draft, sent, viewed, accepted, rejected, expired
+  sentAt      DateTime?
+  viewedAt    DateTime?
+  respondedAt DateTime?
+  expiresAt   DateTime?
+
+  // Documentos
+  pdfUrl      String?
+  documentUrl String?
+  attachments String? // JSON array de URLs de archivos adjuntos
+  notes       String?
+
+  // Términos y condiciones
+  paymentTerms String?
+  validityDays Int     @default(30)
+
+  // Conversión a venta
+  convertedToSale Boolean @default(false)
+  transactionId   String? // ID del cobro/transacción generado cuando se acepta
+  conceptId       String? // ID del concepto usado
+  invoiceId       String? // ID de la factura si se facturó
+
+  // Metadata
+  internalNotes String?
+  tags          String? // JSON array de tags
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  company Company        @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  items   ProposalItem[]
+
+  @@index([companyId, status])
+  @@index([clientEmail])
+  @@map("proposals")
+}
+
+model ProposalItem {
+  id         String @id @default(cuid())
+  proposalId String
+
+  description String
+  quantity    Float
+  unitPrice   Float
+  subtotal    Float
+  tax         Float  @default(0)
+  discount    Float  @default(0)
+  total       Float
+
+  // SAT Info (para cuando se convierta en factura)
+  satCode String? // Clave de producto/servicio SAT
+  satUnit String? // Unidad de medida SAT
+
+  createdAt DateTime @default(now())
+
+  proposal Proposal @relation(fields: [proposalId], references: [id], onDelete: Cascade)
+
+  @@map("proposal_items")
 }
 
 model Expense {
@@ -172,6 +256,7 @@ model Expense {
 model Payroll {
   id          String   @id @default(cuid())
   companyId   String
+  employeeId  String?
   periodStart DateTime
   periodEnd   DateTime
   status      String   @default("draft")
@@ -179,8 +264,9 @@ model Payroll {
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
-  company Company       @relation(fields: [companyId], references: [id])
-  loans   PayrollLoan[]
+  company  Company       @relation(fields: [companyId], references: [id])
+  employee Employee?     @relation(fields: [employeeId], references: [id])
+  loans    PayrollLoan[]
 }
 
 model PayrollLoan {
@@ -215,6 +301,25 @@ model Account {
   @@unique([provider, providerAccountId])
 }
 
+model BankAccount {
+  id          String   @id @default(cuid())
+  companyId   String
+  name        String // Ej: "Cuenta BBVA Empresarial", "Tarjeta Santander"
+  accountType String // "bank", "card", "cash", "other"
+  last4       String? // Últimos 4 dígitos
+  bank        String? // Nombre del banco
+  currency    String   @default("MXN")
+  isActive    Boolean  @default(true)
+  notes       String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  company Company @relation(fields: [companyId], references: [id], onDelete: Cascade)
+
+  @@index([companyId, isActive])
+  @@map("bank_accounts")
+}
+
 model Session {
   id           String   @id @default(cuid())
   sessionToken String   @unique
@@ -239,26 +344,213 @@ model AuditLog {
   company Company? @relation(fields: [companyId], references: [id])
 }
 
-model Transaction {
-  id            String   @id @default(cuid())
-  companyId     String
-  type          String   @default("income") // "income" | "expense"
-  description   String
-  amount        Decimal
-  date          DateTime
-  category      String
-  clientName    String?
-  invoiceNumber String?
-  status        String   @default("pending")
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
+model Client {
+  id        String  @id @default(cuid())
+  companyId String
+  name      String
+  company   String
+  rfc       String?
+  email     String?
+  phone     String?
+  address   String?
 
-  company Company @relation(fields: [companyId], references: [id])
+  // Campos fiscales SAT
+  regimenFiscal String? // Régimen Fiscal SAT (ej: "601")
+  usoCFDI       String? // Uso de CFDI (ej: "G03")
+  codigoPostal  String?
+
+  isActive  Boolean  @default(true)
+  notes     String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  companyRel   Company       @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  transactions Transaction[]
+
+  @@index([companyId, isActive])
+  @@index([rfc])
+  @@map("clients")
+}
+
+model Provider {
+  id        String  @id @default(cuid())
+  companyId String
+  name      String
+  company   String
+  rfc       String?
+  email     String?
+  phone     String?
+  address   String?
+
+  // Campos fiscales SAT
+  regimenFiscal String? // Régimen Fiscal SAT
+  codigoPostal  String?
+
+  // Campos de pago
+  isForeign        Boolean  @default(false) // Es extranjero (no requiere RFC)
+  paymentType      String   @default("variable") // "fixed" | "variable"
+  paymentAmount    Float?   // Monto de pago fijo
+  paymentFrequency String?  // "weekly" | "biweekly" | "monthly" | "annual"
+
+  isActive  Boolean  @default(true)
+  notes     String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  companyRel   Company       @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  transactions Transaction[]
+
+  @@index([companyId, isActive])
+  @@index([rfc])
+  @@map("providers")
+}
+
+model Employee {
+  id        String  @id @default(cuid())
+  companyId String
+  name      String
+  lastName  String
+  fullName  String  @default("") // Computed field for search
+  rfc       String?
+  curp      String?
+  nss       String? // Número de Seguro Social
+  email     String?
+  phone     String?
+  address   String?
+
+  // Employment info
+  position       String?
+  department     String?
+  hireDate       DateTime?
+  salary         Float?
+  paymentFreq    String   @default("biweekly") // weekly, biweekly, monthly
+  bankAccount    String?
+  clabe          String?
+
+  // Tax info
+  regimenFiscal String? // Régimen Fiscal SAT
+  codigoPostal  String?
+
+  isActive  Boolean  @default(true)
+  notes     String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  companyRel   Company       @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  transactions Transaction[]
+  payrolls     Payroll[]
+
+  @@index([companyId, isActive])
+  @@index([rfc])
+  @@index([fullName])
+  @@map("employees")
+}
+
+model Concept {
+  id            String  @id @default(cuid())
+  companyId     String
+  name          String
+  description   String?
+  defaultAmount Float?
+
+  // Códigos SAT
+  claveProdServ String? // Clave Producto/Servicio SAT
+  claveUnidad   String? // Clave Unidad SAT
+  objetoImp     String? // Objeto de impuestos (01, 02, 03, 04)
+
+  // Impuestos
+  tasaIVA          Float   @default(16)
+  tasaRetencionISR Float   @default(0)
+  tasaRetencionIVA Float   @default(0)
+  ivaIncluded      Boolean @default(false) // true = IVA incluido, false = +IVA
+
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  companyRel   Company       @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  transactions Transaction[]
+
+  @@index([companyId, isActive])
+  @@map("concepts")
+}
+
+model Transaction {
+  id        String @id @default(cuid())
+  companyId String
+  type      String @default("income") // "income" | "expense"
+
+  // Información básica
+  date        DateTime
+  description String?
+  amount      Decimal
+  category    String?
+
+  // Relaciones
+  clientId   String?
+  conceptId  String?
+  providerId String?
+  employeeId String?
+
+  // Detalles de transacción
+  quantity      Float?
+  unitPrice     Decimal?
+  subtotal      Decimal?
+  iva           Decimal?
+  retencionISR  Decimal?
+  retencionIVA  Decimal?
+  total         Decimal?
+
+  // Proyecto
+  isProject          Boolean  @default(false)
+  projectName        String?
+  totalProjectAmount Decimal?
+  numberOfPayments   Int?
+  parentProjectId    String? // ID del proyecto padre
+  paymentNumber      Int? // Número de pago (1/4, 2/4, etc)
+
+  // Facturación
+  invoiceNumber     String?
+  isBilled          Boolean @default(false)
+  invoiceType       String? // "PPD" | "PUE"
+  paymentMethod     String?
+  paymentForm       String?
+  paymentConditions String?
+  invoiceStatus     String  @default("pending") // "pending" | "preview" | "stamped"
+  invoiceXmlUrl     String?
+  invoicePdfUrl     String?
+  cfdiUuid          String?
+
+  // Estados
+  status        String @default("pending") // "pending" | "received" | "cancelled" | "paid"
+  paymentStatus String @default("pending") // "paid" | "pending" | "debt"
+
+  // Archivos
+  paymentProofFiles String? // JSON array de URLs
+  invoiceFiles      String? // JSON array de URLs
+
+  // Cuenta bancaria
+  bankAccountId String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  company  Company   @relation(fields: [companyId], references: [id])
+  client   Client?   @relation(fields: [clientId], references: [id])
+  provider Provider? @relation(fields: [providerId], references: [id])
+  employee Employee? @relation(fields: [employeeId], references: [id])
+  concept  Concept?  @relation(fields: [conceptId], references: [id])
 
   @@index([companyId])
   @@index([type])
   @@index([date])
   @@index([category])
+  @@index([bankAccountId])
+  @@index([paymentStatus])
+  @@index([clientId])
+  @@index([conceptId])
+  @@index([parentProjectId])
+  @@map("transactions")
 }
 
 model AuthOtp {
@@ -272,4 +564,3 @@ model AuthOtp {
   @@index([email])
   @@index([expiresAt])
 }
-

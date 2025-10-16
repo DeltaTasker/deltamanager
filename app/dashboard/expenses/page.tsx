@@ -1,7 +1,8 @@
 "use client";
 
-import { useState } from "react";
-import { Plus, Search, Edit, Trash2, Download, Check, X, Upload, FileText, UserCircle, Building, Eye } from "lucide-react";
+import { useState, useEffect } from "react";
+import { Plus, Search, Edit, Trash2, Download, Check, X, FileText, UserCircle, Building, Eye, Upload } from "lucide-react";
+import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -24,8 +25,14 @@ import {
 } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { FilePreviewModal } from "@/components/ui/file-preview-modal";
-import { PeriodFilter, type PeriodValue } from "@/components/ui/period-filter";
-import { FileUpload, type UploadedFile } from "@/components/ui/file-upload";
+import { ConfirmDialog } from "@/components/ui/confirm-dialog";
+import { PeriodFilter, type PeriodValue, filterByDateRange } from "@/components/ui/period-filter";
+import { FileUpload } from "@/components/ui/file-upload";
+
+import { loadExpenses, createExpense, updateExpense, deleteExpense } from "@/app/actions/expenses";
+import { loadBankAccounts } from "@/app/actions/bank-accounts";
+import type { SerializedTransaction } from "@/app/actions/income";
+import type { BankAccount } from "@prisma/client";
 
 // Types
 type Provider = {
@@ -41,6 +48,14 @@ type Employee = {
   position: string;
   salary: number;
   salaryPeriod: "hourly" | "weekly" | "biweekly" | "monthly";
+};
+
+type BankAccount = {
+  id: string;
+  name: string;
+  accountType: string;
+  last4?: string;
+  bank?: string;
 };
 
 type ExpenseTransaction = {
@@ -59,6 +74,10 @@ type ExpenseTransaction = {
   // Archivos
   paymentProofFiles: string[]; // Comprobantes de pago
   invoiceFiles: string[]; // Facturas PDF/XML/ZIP
+  // Bank account and payment status
+  bankAccountId?: string;
+  bankAccountName?: string;
+  paymentStatus: "paid" | "pending" | "debt";
   status: "pending" | "paid" | "cancelled";
 };
 
@@ -74,6 +93,13 @@ const mockEmployees: Employee[] = [
   { id: "3", name: "Carlos Rodríguez", position: "Freelance Designer", salary: 500, salaryPeriod: "hourly" }
 ];
 
+const mockBankAccounts: BankAccount[] = [
+  { id: "1", name: "BBVA Empresarial", accountType: "bank", last4: "1234", bank: "BBVA" },
+  { id: "2", name: "Santander Negocios", accountType: "bank", last4: "5678", bank: "Santander" },
+  { id: "3", name: "Tarjeta Amex", accountType: "card", last4: "9012", bank: "American Express" },
+  { id: "4", name: "Efectivo", accountType: "cash" }
+];
+
 const mockExpenseData: ExpenseTransaction[] = [
   {
     id: "1",
@@ -85,6 +111,9 @@ const mockExpenseData: ExpenseTransaction[] = [
     date: "2024-01-31",
     paymentProofFiles: ["comprobante-nomina-enero.pdf"],
     invoiceFiles: [],
+    bankAccountId: "1",
+    bankAccountName: "BBVA Empresarial",
+    paymentStatus: "paid",
     status: "paid"
   },
   {
@@ -97,6 +126,9 @@ const mockExpenseData: ExpenseTransaction[] = [
     date: "2024-01-15",
     paymentProofFiles: [],
     invoiceFiles: ["factura-aws.pdf", "factura-aws.xml"],
+    bankAccountId: "2",
+    bankAccountName: "Santander Negocios",
+    paymentStatus: "pending",
     status: "pending"
   }
 ];
@@ -104,15 +136,36 @@ const mockExpenseData: ExpenseTransaction[] = [
 export default function ExpensesPage() {
   const [providers] = useState<Provider[]>(mockProviders);
   const [employees] = useState<Employee[]>(mockEmployees);
-  const [transactions, setTransactions] = useState<ExpenseTransaction[]>(mockExpenseData);
-  const [searchTerm, setSearchTerm] = useState("");
-  const [selectedStatus, setSelectedStatus] = useState("all");
-  const [selectedPaymentType, setSelectedPaymentType] = useState("all"); // Nuevo filtro
-  const [selectedPeriod, setSelectedPeriod] = useState<PeriodValue>("Mes");
-  const [customDateRange, setCustomDateRange] = useState<{ from: Date | undefined; to: Date | undefined }>({
-    from: undefined,
-    to: undefined,
+  const [bankAccounts] = useState<BankAccount[]>(mockBankAccounts);
+  const [transactions, setTransactions] = useState<ExpenseTransaction[]>(() => {
+    // Cargar desde localStorage al inicializar
+    if (typeof window !== 'undefined') {
+      const saved = localStorage.getItem('deltamanager_expense_transactions');
+      if (saved) {
+        try {
+          return JSON.parse(saved);
+        } catch (e) {
+          console.error('Error parsing localStorage:', e);
+        }
+      }
+    }
+    return mockExpenseData;
   });
+  const [searchTerm, setSearchTerm] = useState("");
+
+  // Guardar en localStorage cuando cambian las transacciones
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('deltamanager_expense_transactions', JSON.stringify(transactions));
+    }
+  }, [transactions]);
+  const [selectedStatus, setSelectedStatus] = useState("all");
+  const [selectedPaymentType, setSelectedPaymentType] = useState("all");
+  const [selectedPaymentStatus, setSelectedPaymentStatus] = useState("all");
+  const [selectedBankAccount, setSelectedBankAccount] = useState("all");
+  const [selectedPeriod, setSelectedPeriod] = useState<PeriodValue>("month");
+  const [customStartDate, setCustomStartDate] = useState("");
+  const [customEndDate, setCustomEndDate] = useState("");
   const [editingId, setEditingId] = useState<string | null>(null);
   const [showNewForm, setShowNewForm] = useState(false);
   
@@ -127,6 +180,8 @@ export default function ExpensesPage() {
     // Simulación de archivos (en producción serían File[])
     paymentProofFiles: [] as string[],
     invoiceFiles: [] as string[],
+    bankAccountId: "",
+    paymentStatus: "pending" as "paid" | "pending" | "debt",
     status: "pending" as "pending" | "paid" | "cancelled"
   });
 
@@ -134,22 +189,29 @@ export default function ExpensesPage() {
   const [employeeSearch, setEmployeeSearch] = useState("");
   
   // File upload state
-  const [paymentProofFiles, setPaymentProofFiles] = useState<UploadedFile[]>([]);
-  const [invoiceFiles, setInvoiceFiles] = useState<UploadedFile[]>([]);
+  const [paymentProofFiles, setPaymentProofFiles] = useState<string[]>([]);
+  const [invoiceFiles, setInvoiceFiles] = useState<string[]>([]);
   
   // File preview state
-  const [previewFiles, setPreviewFiles] = useState<string[]>([]);
-  const [previewTitle, setPreviewTitle] = useState("");
+  const [previewFileUrl, setPreviewFileUrl] = useState("");
+  const [previewFileName, setPreviewFileName] = useState("");
   const [isPreviewOpen, setIsPreviewOpen] = useState(false);
 
-  const filteredTransactions = transactions.filter(transaction => {
+  // First apply date filter
+  const dateFilteredTransactions = filterByDateRange(transactions, selectedPeriod, customStartDate, customEndDate);
+  
+  // Then apply other filters
+  const filteredTransactions = dateFilteredTransactions.filter(transaction => {
     const matchesSearch = 
       transaction.description.toLowerCase().includes(searchTerm.toLowerCase()) ||
       transaction.providerName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
       transaction.employeeName?.toLowerCase().includes(searchTerm.toLowerCase());
     const matchesStatus = selectedStatus === "all" || transaction.status === selectedStatus;
     const matchesType = selectedPaymentType === "all" || transaction.paymentType === selectedPaymentType;
-    return matchesSearch && matchesStatus && matchesType;
+    const matchesPaymentStatus = selectedPaymentStatus === "all" || transaction.paymentStatus === selectedPaymentStatus;
+    const matchesBankAccount = selectedBankAccount === "all" || transaction.bankAccountId === selectedBankAccount;
+    
+    return matchesSearch && matchesStatus && matchesType && matchesPaymentStatus && matchesBankAccount;
   });
 
   const filteredProviders = providers.filter(p =>
@@ -197,6 +259,8 @@ export default function ExpensesPage() {
       date: new Date().toISOString().split('T')[0],
       paymentProofFiles: [],
       invoiceFiles: [],
+      bankAccountId: "",
+      paymentStatus: "pending",
       status: "pending"
     });
     setProviderSearch("");
@@ -265,11 +329,11 @@ export default function ExpensesPage() {
     const provider = providers.find(p => p.id === formData.providerId);
     const employee = employees.find(e => e.id === formData.employeeId);
 
-    // TODO: En producción, subir archivos al servidor usando uploadMultipleFiles
-    // Por ahora, simulamos las URLs con los nombres de archivo
-    const paymentProofUrls = paymentProofFiles.map(f => `/uploads/proofs/${f.file.name}`);
-    const invoiceUrls = invoiceFiles.map(f => `/uploads/invoices/${f.file.name}`);
+    // Use the uploaded file URLs directly
+    const paymentProofUrls = paymentProofFiles;
+    const invoiceUrls = invoiceFiles;
 
+    const selectedBankAccount = bankAccounts.find(a => a.id === formData.bankAccountId);
     const newTransaction: ExpenseTransaction = {
       id: Date.now().toString(),
       paymentType: formData.paymentType,
@@ -284,10 +348,70 @@ export default function ExpensesPage() {
       hourlyRate: employee?.salaryPeriod === "hourly" ? employee.salary : undefined,
       paymentProofFiles: paymentProofUrls,
       invoiceFiles: invoiceUrls,
+      bankAccountId: formData.bankAccountId || undefined,
+      bankAccountName: selectedBankAccount?.name,
+      paymentStatus: formData.paymentStatus,
       status: formData.status
     };
 
     setTransactions(prev => [newTransaction, ...prev]);
+    setShowNewForm(false);
+    resetForm();
+  };
+
+  const handleStartEdit = (transaction: ExpenseTransaction) => {
+    setEditingId(transaction.id);
+    setShowNewForm(true);
+    setFormData({
+      paymentType: transaction.paymentType,
+      providerId: transaction.providerId || "",
+      employeeId: transaction.employeeId || "",
+      description: transaction.description,
+      amount: transaction.amount.toString(),
+      date: transaction.date,
+      hoursWorked: transaction.hoursWorked?.toString() || "",
+      status: transaction.status,
+      bankAccountId: transaction.bankAccountId || "",
+      paymentStatus: transaction.paymentStatus
+    });
+    setPaymentProofFiles(transaction.paymentProofFiles);
+    setInvoiceFiles(transaction.invoiceFiles);
+  };
+
+  const handleSaveEdit = async () => {
+    if (!editingId) return;
+    if (!formData.amount || (!formData.providerId && !formData.employeeId)) {
+      alert("Por favor completa los campos obligatorios");
+      return;
+    }
+
+    const provider = providers.find(p => p.id === formData.providerId);
+    const employee = employees.find(e => e.id === formData.employeeId);
+    const selectedBankAccount = bankAccounts.find(a => a.id === formData.bankAccountId);
+
+    const transaction = transactions.find(t => t.id === editingId);
+    const updatedTransaction: ExpenseTransaction = {
+      ...transaction!,
+      paymentType: formData.paymentType,
+      providerId: formData.providerId || undefined,
+      providerName: provider?.company,
+      employeeId: formData.employeeId || undefined,
+      employeeName: employee?.name,
+      description: formData.description,
+      amount: parseFloat(formData.amount),
+      date: formData.date,
+      hoursWorked: formData.hoursWorked ? parseFloat(formData.hoursWorked) : undefined,
+      hourlyRate: employee?.salaryPeriod === "hourly" ? employee.salary : undefined,
+      paymentProofFiles: paymentProofFiles,
+      invoiceFiles: invoiceFiles,
+      bankAccountId: formData.bankAccountId || undefined,
+      bankAccountName: selectedBankAccount?.name,
+      paymentStatus: formData.paymentStatus,
+      status: formData.status
+    };
+
+    setTransactions(prev => prev.map(t => t.id === editingId ? updatedTransaction : t));
+    setEditingId(null);
     setShowNewForm(false);
     resetForm();
   };
@@ -298,9 +422,9 @@ export default function ExpensesPage() {
     }
   };
 
-  const handleViewFiles = (files: string[], title: string) => {
-    setPreviewFiles(files);
-    setPreviewTitle(title);
+  const handleViewFile = (fileUrl: string, fileName: string) => {
+    setPreviewFileUrl(fileUrl);
+    setPreviewFileName(fileName);
     setIsPreviewOpen(true);
   };
 
@@ -339,20 +463,12 @@ export default function ExpensesPage() {
           <h1 className="text-3xl font-bold text-white">Pagos (Egresos)</h1>
           <p className="text-sm text-gray-400">Gestión de pagos a proveedores y empleados</p>
         </div>
-        <div className="flex items-center gap-3">
-          <PeriodFilter
-            selectedPeriod={selectedPeriod}
-            onPeriodChange={setSelectedPeriod}
-            customDateRange={customDateRange}
-            onCustomDateRangeChange={setCustomDateRange}
-          />
-          <Button 
-            onClick={() => setShowNewForm(!showNewForm)}
-            className="bg-gradient-to-r from-orange-500 to-red-600 text-white hover:from-orange-600 hover:to-red-700"
-          >
-            {showNewForm ? <><X className="mr-2 h-4 w-4" /> Cancelar</> : <><Plus className="mr-2 h-4 w-4" /> Nuevo Pago</>}
-          </Button>
-        </div>
+        <Button 
+          onClick={() => setShowNewForm(!showNewForm)}
+          className="bg-gradient-to-r from-orange-500 to-red-600 text-white hover:from-orange-600 hover:to-red-700"
+        >
+          {showNewForm ? <><X className="mr-2 h-4 w-4" /> Cancelar</> : <><Plus className="mr-2 h-4 w-4" /> Nuevo Pago</>}
+        </Button>
       </div>
 
       {/* Stats */}
@@ -405,37 +521,73 @@ export default function ExpensesPage() {
       {/* Search & Filters */}
       <Card className="border border-white/10 bg-gradient-to-br from-slate-800/80 to-slate-900/80 backdrop-blur-sm">
         <CardContent className="pt-6">
-          <div className="flex gap-4">
-            <div className="relative flex-1">
-              <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
-              <Input
-                placeholder="Buscar por proveedor, empleado o descripción..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="pl-10 bg-slate-900 border-white/10 text-white placeholder-gray-400"
-              />
+          <div className="flex flex-col gap-4">
+            <div className="flex gap-4">
+              <div className="relative flex-1">
+                <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
+                <Input
+                  placeholder="Buscar por proveedor, empleado o descripción..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  className="pl-10 bg-slate-900 border-white/10 text-white placeholder-gray-400"
+                />
+              </div>
+              <Select value={selectedPaymentType} onValueChange={setSelectedPaymentType}>
+                <SelectTrigger className="w-[180px] bg-slate-900 border-white/10 text-white">
+                  <SelectValue placeholder="Tipo de Pago" />
+                </SelectTrigger>
+                <SelectContent className="bg-gray-800 border-gray-600">
+                  <SelectItem value="all" className="text-white">Todos</SelectItem>
+                  <SelectItem value="employee" className="text-white">Empleados</SelectItem>
+                  <SelectItem value="provider" className="text-white">Proveedores</SelectItem>
+                </SelectContent>
+              </Select>
+              <Select value={selectedStatus} onValueChange={setSelectedStatus}>
+                <SelectTrigger className="w-[180px] bg-slate-900 border-white/10 text-white">
+                  <SelectValue placeholder="Estado" />
+                </SelectTrigger>
+                <SelectContent className="bg-gray-800 border-gray-600">
+                  <SelectItem value="all" className="text-white">Todos</SelectItem>
+                  <SelectItem value="pending" className="text-white">Pendiente</SelectItem>
+                  <SelectItem value="paid" className="text-white">Pagado</SelectItem>
+                  <SelectItem value="cancelled" className="text-white">Cancelado</SelectItem>
+                </SelectContent>
+              </Select>
+              <Select value={selectedPaymentStatus} onValueChange={setSelectedPaymentStatus}>
+                <SelectTrigger className="w-[180px] bg-slate-900 border-white/10 text-white">
+                  <SelectValue placeholder="Estado de Pago" />
+                </SelectTrigger>
+                <SelectContent className="bg-gray-800 border-gray-600">
+                  <SelectItem value="all" className="text-white">Todos</SelectItem>
+                  <SelectItem value="paid" className="text-white">Pagado</SelectItem>
+                  <SelectItem value="pending" className="text-white">Pendiente</SelectItem>
+                  <SelectItem value="debt" className="text-white">Deuda</SelectItem>
+                </SelectContent>
+              </Select>
+              <Select value={selectedBankAccount} onValueChange={setSelectedBankAccount}>
+                <SelectTrigger className="w-[200px] bg-slate-900 border-white/10 text-white">
+                  <SelectValue placeholder="Cuenta" />
+                </SelectTrigger>
+                <SelectContent className="bg-gray-800 border-gray-600">
+                  <SelectItem value="all" className="text-white">Todas las cuentas</SelectItem>
+                  {bankAccounts.map((account) => (
+                    <SelectItem key={account.id} value={account.id} className="text-white">
+                      {account.name} {account.last4 ? `(*${account.last4})` : ""}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
-            <Select value={selectedPaymentType} onValueChange={setSelectedPaymentType}>
-              <SelectTrigger className="w-[180px] bg-slate-900 border-white/10 text-white">
-                <SelectValue placeholder="Tipo de Pago" />
-              </SelectTrigger>
-              <SelectContent className="bg-gray-800 border-gray-600">
-                <SelectItem value="all" className="text-white">Todos</SelectItem>
-                <SelectItem value="employee" className="text-white">Empleados</SelectItem>
-                <SelectItem value="provider" className="text-white">Proveedores</SelectItem>
-              </SelectContent>
-            </Select>
-            <Select value={selectedStatus} onValueChange={setSelectedStatus}>
-              <SelectTrigger className="w-[180px] bg-slate-900 border-white/10 text-white">
-                <SelectValue placeholder="Estado" />
-              </SelectTrigger>
-              <SelectContent className="bg-gray-800 border-gray-600">
-                <SelectItem value="all" className="text-white">Todos</SelectItem>
-                <SelectItem value="pending" className="text-white">Pendiente</SelectItem>
-                <SelectItem value="paid" className="text-white">Pagado</SelectItem>
-                <SelectItem value="cancelled" className="text-white">Cancelado</SelectItem>
-              </SelectContent>
-            </Select>
+            <PeriodFilter
+              value={selectedPeriod}
+              onChange={setSelectedPeriod}
+              customStartDate={customStartDate}
+              customEndDate={customEndDate}
+              onCustomDateChange={(start, end) => {
+                setCustomStartDate(start);
+                setCustomEndDate(end);
+              }}
+            />
           </div>
         </CardContent>
       </Card>
@@ -459,6 +611,8 @@ export default function ExpensesPage() {
                   <TableHead className="text-gray-400 w-[250px]">Descripción</TableHead>
                   {hasHourlyPayments && <TableHead className="text-gray-400 w-[100px]">Horas</TableHead>}
                   <TableHead className="text-gray-400 w-[120px]">Monto</TableHead>
+                  <TableHead className="text-gray-400 w-[150px]">Cuenta</TableHead>
+                  <TableHead className="text-gray-400 w-[120px]">Estado Pago</TableHead>
                   <TableHead className="text-gray-400 w-[150px]">Archivos</TableHead>
                   <TableHead className="text-gray-400 w-[100px]">Estado</TableHead>
                   <TableHead className="text-gray-400 w-[100px]">Acciones</TableHead>
@@ -585,6 +739,33 @@ export default function ExpensesPage() {
                       />
                     </TableCell>
                     <TableCell className="p-2">
+                      <Select value={formData.bankAccountId || "none"} onValueChange={(value) => setFormData(prev => ({ ...prev, bankAccountId: value === "none" ? "" : value }))}>
+                        <SelectTrigger className="bg-gray-800 border-orange-500/30 text-white text-sm h-8">
+                          <SelectValue placeholder="Cuenta..." />
+                        </SelectTrigger>
+                        <SelectContent className="bg-gray-800 border-gray-600">
+                          <SelectItem value="none" className="text-white">Sin asignar</SelectItem>
+                          {bankAccounts.map((account) => (
+                            <SelectItem key={account.id} value={account.id} className="text-white text-sm">
+                              {account.name} {account.last4 ? `(*${account.last4})` : ""}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </TableCell>
+                    <TableCell className="p-2">
+                      <Select value={formData.paymentStatus} onValueChange={(value: any) => setFormData(prev => ({ ...prev, paymentStatus: value }))}>
+                        <SelectTrigger className="bg-gray-800 border-orange-500/30 text-white text-sm h-8">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent className="bg-gray-800 border-gray-600">
+                          <SelectItem value="pending" className="text-white">Pendiente</SelectItem>
+                          <SelectItem value="paid" className="text-white">Pagado</SelectItem>
+                          <SelectItem value="debt" className="text-white">Deuda</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </TableCell>
+                    <TableCell className="p-2">
                       <div className="space-y-1">
                         <label className="cursor-pointer">
                           <Input
@@ -628,10 +809,10 @@ export default function ExpensesPage() {
                     </TableCell>
                     <TableCell className="p-2">
                       <div className="flex gap-1">
-                        <Button size="sm" onClick={handleCreate} className="h-8 bg-green-600 hover:bg-green-700">
+                        <Button size="sm" onClick={editingId ? handleSaveEdit : handleCreate} className="h-8 bg-green-600 hover:bg-green-700">
                           <Check className="h-4 w-4" />
                         </Button>
-                        <Button size="sm" variant="ghost" onClick={() => { setShowNewForm(false); resetForm(); }} className="h-8 text-red-400 hover:bg-red-500/10">
+                        <Button size="sm" variant="ghost" onClick={() => { setShowNewForm(false); setEditingId(null); resetForm(); }} className="h-8 text-red-400 hover:bg-red-500/10">
                           <X className="h-4 w-4" />
                         </Button>
                       </div>
@@ -642,35 +823,41 @@ export default function ExpensesPage() {
                 {/* Fila adicional para uploads de archivos */}
                 {showNewForm && (
                   <TableRow className="border-white/10 bg-orange-500/5">
-                    <TableCell colSpan={hasHourlyPayments ? 9 : 8} className="p-4">
+                    <TableCell colSpan={hasHourlyPayments ? 11 : 10} className="p-4">
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <div>
                           <Label className="text-white mb-2 block">Comprobantes de Pago</Label>
                           <FileUpload
-                            label="Subir comprobantes de pago"
-                            accept="image/*,application/pdf"
-                            multiple
-                            maxSize={10}
-                            files={paymentProofFiles}
-                            onChange={(files) => {
-                              setPaymentProofFiles(files);
+                            accept=".pdf,.jpg,.jpeg,.png,.webp"
+                            category="expenses"
+                            maxSize={10 * 1024 * 1024}
+                            onUploadComplete={(url) => {
+                              setPaymentProofFiles(prev => [...prev, url]);
                               // Auto-marcar como pagado si sube comprobante
-                              if (files.length > 0) {
-                                setFormData(prev => ({ ...prev, status: "paid" }));
-                              }
+                              setFormData(prev => ({ ...prev, status: "paid" }));
                             }}
+                            onUploadError={(error) => console.error("Error uploading file:", error)}
                           />
+                          {paymentProofFiles.length > 0 && (
+                            <div className="mt-2 text-xs text-gray-400">
+                              {paymentProofFiles.length} archivo(s) subido(s)
+                            </div>
+                          )}
                         </div>
                         <div>
                           <Label className="text-white mb-2 block">Facturas (PDF, XML, ZIP)</Label>
                           <FileUpload
-                            label="Subir facturas"
-                            accept="application/pdf,application/xml,text/xml,application/zip"
-                            multiple
-                            maxSize={10}
-                            files={invoiceFiles}
-                            onChange={setInvoiceFiles}
+                            accept=".pdf,.xml,.zip"
+                            category="expenses"
+                            maxSize={10 * 1024 * 1024}
+                            onUploadComplete={(url) => setInvoiceFiles(prev => [...prev, url])}
+                            onUploadError={(error) => console.error("Error uploading file:", error)}
                           />
+                          {invoiceFiles.length > 0 && (
+                            <div className="mt-2 text-xs text-gray-400">
+                              {invoiceFiles.length} archivo(s) subido(s)
+                            </div>
+                          )}
                         </div>
                       </div>
                     </TableCell>
@@ -696,10 +883,35 @@ export default function ExpensesPage() {
                       </TableCell>
                     )}
                     <TableCell className="p-3 text-white font-semibold text-sm">{formatCurrency(transaction.amount)}</TableCell>
+                    <TableCell className="p-3">
+                      {transaction.bankAccountName ? (
+                        <div className="text-gray-300 text-sm">
+                          <div>{transaction.bankAccountName}</div>
+                          {bankAccounts.find(a => a.id === transaction.bankAccountId)?.last4 && (
+                            <div className="text-xs text-gray-500">
+                              *{bankAccounts.find(a => a.id === transaction.bankAccountId)?.last4}
+                            </div>
+                          )}
+                        </div>
+                      ) : (
+                        <span className="text-gray-500 text-sm">Sin asignar</span>
+                      )}
+                    </TableCell>
+                    <TableCell className="p-3">
+                      {transaction.paymentStatus === "paid" && (
+                        <Badge className="bg-green-500/20 text-green-500 text-xs">Pagado</Badge>
+                      )}
+                      {transaction.paymentStatus === "pending" && (
+                        <Badge className="bg-yellow-500/20 text-yellow-500 text-xs">Pendiente</Badge>
+                      )}
+                      {transaction.paymentStatus === "debt" && (
+                        <Badge className="bg-red-500/20 text-red-500 text-xs">Deuda</Badge>
+                      )}
+                    </TableCell>
                     <TableCell className="p-3 text-xs space-y-1">
                       {transaction.paymentProofFiles.length > 0 && (
                         <button
-                          onClick={() => handleViewFiles(transaction.paymentProofFiles, "Comprobantes de Pago")}
+                          onClick={() => handleViewFile(transaction.paymentProofFiles[0], `Comprobante ${transaction.id}`)}
                           className="flex items-center gap-1 text-green-400 hover:text-green-300 transition-colors"
                         >
                           <Eye className="h-3 w-3" />
@@ -708,7 +920,7 @@ export default function ExpensesPage() {
                       )}
                       {transaction.invoiceFiles.length > 0 && (
                         <button
-                          onClick={() => handleViewFiles(transaction.invoiceFiles, "Facturas")}
+                          onClick={() => handleViewFile(transaction.invoiceFiles[0], `Factura ${transaction.id}`)}
                           className="flex items-center gap-1 text-blue-400 hover:text-blue-300 transition-colors"
                         >
                           <Eye className="h-3 w-3" />
@@ -722,6 +934,14 @@ export default function ExpensesPage() {
                     <TableCell className="p-3">{getStatusBadge(transaction.status)}</TableCell>
                     <TableCell className="p-3">
                       <div className="flex items-center gap-1">
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => handleStartEdit(transaction)}
+                          className="h-8 text-blue-400 hover:bg-blue-500/10"
+                        >
+                          <Edit className="h-4 w-4" />
+                        </Button>
                         <Button
                           variant="ghost"
                           size="sm"
@@ -742,10 +962,10 @@ export default function ExpensesPage() {
 
       {/* File Preview Modal */}
       <FilePreviewModal
-        files={previewFiles}
+        fileUrl={previewFileUrl}
+        fileName={previewFileName}
         isOpen={isPreviewOpen}
         onClose={() => setIsPreviewOpen(false)}
-        title={previewTitle}
       />
     </div>
   );

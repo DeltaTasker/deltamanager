@@ -1,250 +1,101 @@
-/**
- * Utilidades para manejo de archivos en almacenamiento local
- * Compatible con Hostinger/VPS con CyberPanel
- */
-
-import { writeFile, mkdir, unlink, readFile } from "fs/promises";
+import { writeFile, mkdir } from "fs/promises";
 import { existsSync } from "fs";
 import path from "path";
-import { nanoid } from "nanoid";
 
-// Tipos de archivo permitidos
+export const UPLOAD_DIR = path.join(process.cwd(), "public", "uploads");
+export const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
+
 export const ALLOWED_FILE_TYPES = {
-  images: ["image/jpeg", "image/jpg", "image/png", "image/webp"],
-  documents: ["application/pdf"],
+  pdf: "application/pdf",
   xml: ["application/xml", "text/xml"],
   zip: ["application/zip", "application/x-zip-compressed"],
-} as const;
-
-export const ALL_ALLOWED_TYPES = [
-  ...ALLOWED_FILE_TYPES.images,
-  ...ALLOWED_FILE_TYPES.documents,
-  ...ALLOWED_FILE_TYPES.xml,
-  ...ALLOWED_FILE_TYPES.zip,
-];
-
-// Tamaño máximo: 10MB por defecto
-export const MAX_FILE_SIZE = 10 * 1024 * 1024;
-
-// Directorio base para uploads (relativo al root del proyecto)
-export const UPLOAD_BASE_DIR = path.join(process.cwd(), "public", "uploads");
-
-// Subdirectorios organizados
-export const UPLOAD_DIRS = {
-  invoices: path.join(UPLOAD_BASE_DIR, "invoices"),
-  proofs: path.join(UPLOAD_BASE_DIR, "proofs"),
-  certificates: path.join(UPLOAD_BASE_DIR, "certificates"),
-  logos: path.join(UPLOAD_BASE_DIR, "logos"),
-  temp: path.join(UPLOAD_BASE_DIR, "temp"),
-} as const;
-
-export type UploadDirectory = keyof typeof UPLOAD_DIRS;
-
-/**
- * Resultado de un upload
- */
-export type UploadResult = {
-  success: boolean;
-  filename?: string;
-  path?: string;
-  url?: string;
-  size?: number;
-  error?: string;
+  images: ["image/jpeg", "image/jpg", "image/png", "image/webp"],
 };
 
-/**
- * Inicializa los directorios de upload si no existen
- */
-export async function initUploadDirs(): Promise<void> {
-  for (const dir of Object.values(UPLOAD_DIRS)) {
-    if (!existsSync(dir)) {
-      await mkdir(dir, { recursive: true });
-    }
+export type UploadCategory = "invoices" | "expenses" | "proposals" | "general" | "payment-proofs";
+
+export async function ensureUploadDir(category: UploadCategory) {
+  const categoryDir = path.join(UPLOAD_DIR, category);
+  if (!existsSync(categoryDir)) {
+    await mkdir(categoryDir, { recursive: true });
   }
+  return categoryDir;
 }
 
-/**
- * Valida un archivo según tipo y tamaño
- */
-export function validateFile(
+export async function saveUploadedFile(
   file: File,
-  maxSize: number = MAX_FILE_SIZE,
-  allowedTypes: string[] = ALL_ALLOWED_TYPES
-): { valid: boolean; error?: string } {
-  // Validar tamaño
-  if (file.size > maxSize) {
-    return {
-      valid: false,
-      error: `El archivo excede el tamaño máximo de ${(maxSize / 1024 / 1024).toFixed(2)}MB`,
-    };
-  }
-
-  // Validar tipo
-  if (!allowedTypes.includes(file.type)) {
-    return {
-      valid: false,
-      error: `Tipo de archivo no permitido: ${file.type}`,
-    };
-  }
-
-  return { valid: true };
-}
-
-/**
- * Genera un nombre único para el archivo
- */
-export function generateUniqueFilename(originalName: string): string {
-  const ext = path.extname(originalName);
-  const timestamp = Date.now();
-  const random = nanoid(8);
-  return `${timestamp}-${random}${ext}`;
-}
-
-/**
- * Guarda un archivo en el sistema de archivos local
- */
-export async function saveFile(
-  file: File,
-  directory: UploadDirectory,
-  customFilename?: string
-): Promise<UploadResult> {
+  category: UploadCategory,
+  customName?: string
+): Promise<{ success: boolean; path?: string; url?: string; error?: string }> {
   try {
-    // Inicializar directorios si no existen
-    await initUploadDirs();
-
-    // Validar archivo
-    const validation = validateFile(file);
-    if (!validation.valid) {
-      return {
-        success: false,
-        error: validation.error,
-      };
+    // Validar tamaño
+    if (file.size > MAX_FILE_SIZE) {
+      return { success: false, error: "Archivo demasiado grande (máx 10MB)" };
     }
 
-    // Generar nombre de archivo
-    const filename = customFilename || generateUniqueFilename(file.name);
-    const targetDir = UPLOAD_DIRS[directory];
-    const filePath = path.join(targetDir, filename);
+    // Validar tipo de archivo
+    const isValidType = Object.values(ALLOWED_FILE_TYPES).some((types) => {
+      if (Array.isArray(types)) {
+        return types.includes(file.type);
+      }
+      return types === file.type;
+    });
 
-    // Convertir File a Buffer
-    const arrayBuffer = await file.arrayBuffer();
-    const buffer = Buffer.from(arrayBuffer);
+    if (!isValidType) {
+      return { success: false, error: "Tipo de archivo no permitido" };
+    }
+
+    // Preparar directorio
+    const categoryDir = await ensureUploadDir(category);
+
+    // Generar nombre único
+    const timestamp = Date.now();
+    const randomString = Math.random().toString(36).substring(2, 8);
+    const ext = path.extname(file.name);
+    const fileName = customName
+      ? `${customName}-${timestamp}${ext}`
+      : `${timestamp}-${randomString}${ext}`;
 
     // Guardar archivo
+    const filePath = path.join(categoryDir, fileName);
+    const bytes = await file.arrayBuffer();
+    const buffer = Buffer.from(bytes);
     await writeFile(filePath, buffer);
 
-    // Generar URL pública
-    const publicUrl = `/uploads/${directory}/${filename}`;
+    // Retornar URL pública
+    const publicUrl = `/uploads/${category}/${fileName}`;
 
     return {
       success: true,
-      filename,
       path: filePath,
       url: publicUrl,
-      size: file.size,
     };
   } catch (error) {
-    console.error("Error al guardar archivo:", error);
+    console.error("Error saving file:", error);
     return {
       success: false,
-      error: error instanceof Error ? error.message : "Error desconocido al guardar archivo",
+      error: error instanceof Error ? error.message : "Error al guardar archivo",
     };
   }
 }
 
-/**
- * Guarda múltiples archivos
- */
-export async function saveMultipleFiles(
-  files: File[],
-  directory: UploadDirectory
-): Promise<UploadResult[]> {
-  const results: UploadResult[] = [];
-
-  for (const file of files) {
-    const result = await saveFile(file, directory);
-    results.push(result);
-  }
-
-  return results;
-}
-
-/**
- * Elimina un archivo del sistema
- */
-export async function deleteFile(filepath: string): Promise<{ success: boolean; error?: string }> {
-  try {
-    if (existsSync(filepath)) {
-      await unlink(filepath);
-      return { success: true };
-    }
-    return { success: false, error: "Archivo no encontrado" };
-  } catch (error) {
-    console.error("Error al eliminar archivo:", error);
-    return {
-      success: false,
-      error: error instanceof Error ? error.message : "Error desconocido al eliminar archivo",
-    };
-  }
-}
-
-/**
- * Elimina múltiples archivos
- */
-export async function deleteMultipleFiles(filepaths: string[]): Promise<void> {
-  await Promise.all(filepaths.map(fp => deleteFile(fp)));
-}
-
-/**
- * Convierte un archivo a Base64 (útil para logos en PDFs)
- */
-export async function fileToBase64(file: File): Promise<string> {
-  const arrayBuffer = await file.arrayBuffer();
-  const buffer = Buffer.from(arrayBuffer);
-  return buffer.toString("base64");
-}
-
-/**
- * Lee un archivo del sistema y lo convierte a Base64
- */
-export async function readFileAsBase64(filepath: string): Promise<string> {
-  const buffer = await readFile(filepath);
-  return buffer.toString("base64");
-}
-
-/**
- * Obtiene la extensión de un archivo
- */
 export function getFileExtension(filename: string): string {
-  return path.extname(filename).toLowerCase().replace(".", "");
+  return path.extname(filename).toLowerCase().slice(1);
 }
 
-/**
- * Determina si un archivo es una imagen
- */
-export function isImage(filename: string): boolean {
+export function isImageFile(filename: string): boolean {
   const ext = getFileExtension(filename);
-  return ["jpg", "jpeg", "png", "webp", "gif"].includes(ext);
+  return ["jpg", "jpeg", "png", "webp"].includes(ext);
 }
 
-/**
- * Determina si un archivo es un PDF
- */
-export function isPDF(filename: string): boolean {
+export function isPDFFile(filename: string): boolean {
   return getFileExtension(filename) === "pdf";
 }
 
-/**
- * Determina si un archivo es XML
- */
-export function isXML(filename: string): boolean {
+export function isXMLFile(filename: string): boolean {
   return getFileExtension(filename) === "xml";
 }
 
-/**
- * Determina si un archivo es ZIP
- */
-export function isZIP(filename: string): boolean {
+export function isZIPFile(filename: string): boolean {
   return getFileExtension(filename) === "zip";
 }
-

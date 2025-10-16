@@ -4,14 +4,24 @@
  * Server Actions para manejo de uploads de archivos
  */
 
-import { saveFile, saveMultipleFiles, deleteFile, type UploadDirectory, type UploadResult } from "@/lib/upload";
+import { saveUploadedFile, type UploadCategory } from "@/lib/upload";
+import { unlink } from "fs/promises";
+import { existsSync } from "fs";
+import path from "path";
+
+export type UploadResult = {
+  success: boolean;
+  path?: string;
+  url?: string;
+  error?: string;
+};
 
 /**
  * Sube un solo archivo
  */
 export async function uploadFile(
   formData: FormData,
-  directory: UploadDirectory
+  category: UploadCategory
 ): Promise<UploadResult> {
   try {
     const file = formData.get("file") as File | null;
@@ -23,7 +33,7 @@ export async function uploadFile(
       };
     }
 
-    return await saveFile(file, directory);
+    return await saveUploadedFile(file, category);
   } catch (error) {
     console.error("Error en uploadFile:", error);
     return {
@@ -38,7 +48,7 @@ export async function uploadFile(
  */
 export async function uploadMultipleFiles(
   formData: FormData,
-  directory: UploadDirectory
+  category: UploadCategory
 ): Promise<UploadResult[]> {
   try {
     const files = formData.getAll("files") as File[];
@@ -50,7 +60,11 @@ export async function uploadMultipleFiles(
       }];
     }
 
-    return await saveMultipleFiles(files, directory);
+    const results = await Promise.all(
+      files.map(file => saveUploadedFile(file, category))
+    );
+
+    return results;
   } catch (error) {
     console.error("Error en uploadMultipleFiles:", error);
     return [{
@@ -65,7 +79,20 @@ export async function uploadMultipleFiles(
  */
 export async function removeFile(filepath: string): Promise<{ success: boolean; error?: string }> {
   try {
-    return await deleteFile(filepath);
+    const fullPath = path.join(process.cwd(), "public", filepath);
+    
+    if (!existsSync(fullPath)) {
+      return {
+        success: false,
+        error: "El archivo no existe",
+      };
+    }
+
+    await unlink(fullPath);
+    
+    return {
+      success: true,
+    };
   } catch (error) {
     console.error("Error en removeFile:", error);
     return {

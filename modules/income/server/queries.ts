@@ -80,7 +80,7 @@ export async function getCompanyIncomeTransactions(
   await ensureCompanyAccess(userId, companyId);
 
   // Return mock data for now
-  return mockIncomeData.slice(offset || 0, limit ? offset + limit : undefined);
+  return mockIncomeData.slice(offset || 0, limit ? (offset || 0) + limit : undefined);
 }
 
 export async function createIncomeTransaction(

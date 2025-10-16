@@ -59,15 +59,15 @@ export function generateCFDIComprobante(
   const emisorData: CFDIEmisor = {
     Rfc: emisor.rfc,
     Nombre: emisor.nombre,
-    RegimenFiscal: emisor.regimenFiscal,
+    RegimenFiscal: emisor.regimenFiscal as any,
   };
 
   const receptorData: CFDIReceptor = {
     Rfc: transaction.clientRFC,
     Nombre: transaction.clientName,
     DomicilioFiscalReceptor: transaction.clientDomicilioFiscal,
-    RegimenFiscalReceptor: transaction.clientRegimenFiscal,
-    UsoCFDI: transaction.clientUsoCFDI,
+    RegimenFiscalReceptor: transaction.clientRegimenFiscal as any,
+    UsoCFDI: transaction.clientUsoCFDI as any,
   };
 
   const concepto: CFDIConcepto = {
@@ -77,7 +77,7 @@ export function generateCFDIComprobante(
     Descripcion: transaction.conceptName,
     ValorUnitario: transaction.unitPrice.toFixed(2),
     Importe: transaction.subtotal.toFixed(2),
-    ObjetoImp: transaction.conceptObjetoImp,
+    ObjetoImp: transaction.conceptObjetoImp as any,
   };
 
   // Agregar impuestos al concepto si aplica
@@ -110,11 +110,11 @@ export function generateCFDIComprobante(
     concepto.Impuestos = {};
 
     if (traslados.length > 0) {
-      concepto.Impuestos.Traslados = { Traslado: traslados };
+      (concepto.Impuestos as any).Traslados = { Traslado: traslados };
     }
 
     if (retenciones.length > 0) {
-      concepto.Impuestos.Retenciones = { Retencion: retenciones };
+      (concepto.Impuestos as any).Retenciones = { Retencion: retenciones };
     }
   }
 
@@ -123,20 +123,18 @@ export function generateCFDIComprobante(
     Serie: transaction.serie,
     Folio: transaction.folio,
     Fecha: fecha,
-    FormaPago: transaction.paymentForm,
+    FormaPago: transaction.paymentForm as any,
     CondicionesDePago: transaction.paymentConditions,
     SubTotal: transaction.subtotal.toFixed(2),
     Moneda: "MXN",
     Total: transaction.total.toFixed(2),
-    TipoDeComprobante: "I", // Ingreso
-    Exportacion: "01", // No aplica
-    MetodoPago: transaction.invoiceType === "PUE" ? "PUE" : "PPD",
+    TipoDeComprobante: "I" as any, // Ingreso
+    Exportacion: "01" as any, // No aplica
+    MetodoPago: transaction.invoiceType === "PUE" ? ("PUE" as any) : ("PPD" as any),
     LugarExpedicion: emisor.codigoPostal,
     Emisor: emisorData,
     Receptor: receptorData,
-    Conceptos: {
-      Concepto: [concepto],
-    },
+    Conceptos: [concepto] as any,
   };
 
   // Agregar impuestos globales si aplica
@@ -178,26 +176,8 @@ export function cfdiToFacturaloPlusJSON(
   comprobante: CFDIComprobante
 ): FacturaloPlusJSON {
   return {
-    cfdi: {
-      Comprobante: {
-        ...comprobante,
-        _attributes: {
-          Version: comprobante.Version,
-          Serie: comprobante.Serie,
-          Folio: comprobante.Folio,
-          Fecha: comprobante.Fecha,
-          FormaPago: comprobante.FormaPago,
-          SubTotal: comprobante.SubTotal,
-          Moneda: comprobante.Moneda,
-          Total: comprobante.Total,
-          TipoDeComprobante: comprobante.TipoDeComprobante,
-          Exportacion: comprobante.Exportacion,
-          MetodoPago: comprobante.MetodoPago,
-          LugarExpedicion: comprobante.LugarExpedicion,
-        },
-      },
-    },
-  };
+    Comprobante: comprobante,
+  } as any;
 }
 
 /**
@@ -293,4 +273,5 @@ export function getEmisorDataFromSettings(settings: any): EmisorData {
     codigoPostal: settings.companyPostalCode || "00000",
   };
 }
+
 

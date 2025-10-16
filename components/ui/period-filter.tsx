@@ -7,6 +7,7 @@ import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
 
 export type Period = "week" | "biweek" | "month" | "year" | "custom";
+export type PeriodValue = Period; // Alias for backward compatibility
 
 export type PeriodFilterProps = {
   value: Period;
@@ -157,9 +158,14 @@ export function filterByDateRange<T extends { date: string }>(
   customStartDate?: string,
   customEndDate?: string
 ): T[] {
+  if (!items || !Array.isArray(items)) {
+    return [];
+  }
+  
   const { startDate, endDate } = getDateRangeForPeriod(period, customStartDate, customEndDate);
   
   return items.filter(item => {
+    if (!item || !item.date) return false;
     const itemDate = new Date(item.date);
     return itemDate >= startDate && itemDate <= endDate;
   });
