@@ -22,6 +22,25 @@ export async function updateClient(data: UpdateClientInput) {
   try {
     const { id, ...updateData } = data;
     
+    // Validaciones del servidor
+    if (updateData.name !== undefined && updateData.name.trim() === "") {
+      return { success: false, error: "El nombre del cliente no puede estar vacío" };
+    }
+
+    if (updateData.company !== undefined && updateData.company.trim() === "") {
+      return { success: false, error: "La razón social no puede estar vacía" };
+    }
+
+    // Validar RFC si se proporciona
+    if (updateData.rfc && (updateData.rfc.length < 12 || updateData.rfc.length > 13)) {
+      return { success: false, error: "El RFC debe tener 12 o 13 caracteres" };
+    }
+
+    // Validar email si se proporciona
+    if (updateData.email && !updateData.email.includes("@")) {
+      return { success: false, error: "El email no es válido" };
+    }
+    
     const client = await prisma.client.update({
       where: { id },
       data: updateData,
@@ -33,7 +52,7 @@ export async function updateClient(data: UpdateClientInput) {
     return { success: true, client };
   } catch (error) {
     console.error("Error updating client:", error);
-    return { success: false, error: "Failed to update client" };
+    return { success: false, error: "Error al actualizar el cliente" };
   }
 }
 

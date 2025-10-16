@@ -51,6 +51,27 @@ export type CreateTransactionInput = {
 
 export async function createTransaction(data: CreateTransactionInput) {
   try {
+    // Validaciones del servidor
+    if (!data.total || data.total <= 0) {
+      return { success: false, error: "El monto total debe ser mayor a 0" };
+    }
+
+    if (data.type === "income" && !data.clientId) {
+      return { success: false, error: "El cliente es requerido para ingresos" };
+    }
+
+    if (data.type === "expense" && !data.providerId && !data.employeeId) {
+      return { success: false, error: "El proveedor o empleado es requerido para gastos" };
+    }
+
+    if (data.isProject && !data.projectName) {
+      return { success: false, error: "El nombre del proyecto es requerido" };
+    }
+
+    if (data.isProject && (!data.numberOfPayments || data.numberOfPayments < 1)) {
+      return { success: false, error: "El número de pagos debe ser mayor a 0" };
+    }
+
     const {
       isProject,
       numberOfPayments,

@@ -19,6 +19,25 @@ export type CreateClientInput = {
 
 export async function createClient(data: CreateClientInput) {
   try {
+    // Validaciones del servidor
+    if (!data.name || data.name.trim() === "") {
+      return { success: false, error: "El nombre del cliente es requerido" };
+    }
+
+    if (!data.company || data.company.trim() === "") {
+      return { success: false, error: "La razón social es requerida" };
+    }
+
+    // Validar RFC si se proporciona (debe tener 12-13 caracteres)
+    if (data.rfc && (data.rfc.length < 12 || data.rfc.length > 13)) {
+      return { success: false, error: "El RFC debe tener 12 o 13 caracteres" };
+    }
+
+    // Validar email si se proporciona
+    if (data.email && !data.email.includes("@")) {
+      return { success: false, error: "El email no es válido" };
+    }
+
     const client = await prisma.client.create({
       data: {
         ...data,
@@ -32,7 +51,7 @@ export async function createClient(data: CreateClientInput) {
     return { success: true, client };
   } catch (error) {
     console.error("Error creating client:", error);
-    return { success: false, error: "Failed to create client" };
+    return { success: false, error: "Error al crear el cliente" };
   }
 }
 
