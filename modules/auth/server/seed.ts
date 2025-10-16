@@ -97,7 +97,6 @@ async function main() {
         amount: transaction.amount,
         date: transaction.date,
         category: transaction.category,
-        clientName: transaction.clientName,
         invoiceNumber: transaction.invoiceNumber,
         status: transaction.status,
       },

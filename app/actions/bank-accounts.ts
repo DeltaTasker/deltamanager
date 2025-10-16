@@ -3,6 +3,7 @@
 import { getBankAccounts as getBankAccountsQuery } from "@/modules/bank-accounts/server/queries";
 import { createBankAccount as createAction } from "@/modules/bank-accounts/actions/create-bank-account";
 import type { BankAccount } from "@prisma/client";
+import type { BankAccountType } from "@/modules/bank-accounts/types";
 import { prisma } from "@/lib/prisma";
 import { revalidatePath } from "next/cache";
 
@@ -13,7 +14,7 @@ export async function loadBankAccounts(companyId: string): Promise<BankAccount[]
 export async function createBankAccount(data: {
   companyId: string;
   name: string;
-  accountType: string;
+  accountType: BankAccountType;
   last4?: string;
   bank?: string;
   currency: string;
@@ -26,7 +27,7 @@ export async function createBankAccount(data: {
 export async function updateBankAccount(data: {
   id: string;
   name?: string;
-  accountType?: string;
+  accountType?: BankAccountType;
   last4?: string;
   bank?: string;
   currency?: string;

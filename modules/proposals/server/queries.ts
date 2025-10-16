@@ -20,9 +20,9 @@ export async function getProposals(params: {
     ...(status && { status }),
     ...(search && {
       OR: [
-        { clientName: { contains: search, mode: "insensitive" } },
-        { clientEmail: { contains: search, mode: "insensitive" } },
-        { title: { contains: search, mode: "insensitive" } },
+        { clientName: { contains: search } },
+        { clientEmail: { contains: search } },
+        { title: { contains: search } },
       ],
     }),
   };

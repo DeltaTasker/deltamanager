@@ -29,10 +29,9 @@ import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { PeriodFilter, type PeriodValue, filterByDateRange } from "@/components/ui/period-filter";
 import { FileUpload } from "@/components/ui/file-upload";
 
-import { loadExpenses, createExpense, updateExpense, deleteExpense } from "@/app/actions/expenses";
+import { loadExpenseData } from "@/app/actions/expenses";
 import { loadBankAccounts } from "@/app/actions/bank-accounts";
 import type { SerializedTransaction } from "@/app/actions/income";
-import type { BankAccount } from "@prisma/client";
 
 // Types
 type Provider = {
@@ -381,6 +380,8 @@ export default function ExpensesPage() {
       amount: transaction.amount.toString(),
       date: transaction.date,
       hoursWorked: transaction.hoursWorked?.toString() || "",
+      paymentProofFiles: transaction.paymentProofFiles,
+      invoiceFiles: transaction.invoiceFiles,
       status: transaction.status,
       bankAccountId: transaction.bankAccountId || "",
       paymentStatus: transaction.paymentStatus

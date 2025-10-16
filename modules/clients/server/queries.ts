@@ -52,10 +52,10 @@ export async function searchClients(
       companyId,
       isActive: true,
       OR: [
-        { name: { contains: query, mode: "insensitive" } },
-        { rfc: { contains: query, mode: "insensitive" } },
-        { email: { contains: query, mode: "insensitive" } },
-        { company: { contains: query, mode: "insensitive" } },
+        { name: { contains: query } },
+        { rfc: { contains: query } },
+        { email: { contains: query } },
+        { company: { contains: query } },
       ],
     },
     orderBy: {

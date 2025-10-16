@@ -42,8 +42,8 @@ export async function acceptProposal(input: AcceptProposalInput) {
         description: `Cobro generado de propuesta: ${proposal.title}`,
         amount: proposal.total,
         date: new Date(),
-        category: "proposal", // o el concepto que corresponda
-        clientName: proposal.clientName,
+        category: "proposal",
+        clientId: proposal.clientId,
         status: "pending",
         paymentStatus: "pending",
       },

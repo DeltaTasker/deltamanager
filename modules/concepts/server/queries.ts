@@ -52,8 +52,8 @@ export async function searchConcepts(
       companyId,
       isActive: true,
       OR: [
-        { name: { contains: query, mode: "insensitive" } },
-        { description: { contains: query, mode: "insensitive" } },
+        { name: { contains: query } },
+        { description: { contains: query } },
       ],
     },
     orderBy: {

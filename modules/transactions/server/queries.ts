@@ -61,9 +61,9 @@ export async function getTransactions(
     }),
     ...(search && {
       OR: [
-        { description: { contains: search, mode: "insensitive" } },
-        { invoiceNumber: { contains: search, mode: "insensitive" } },
-        { projectName: { contains: search, mode: "insensitive" } },
+        { description: { contains: search } },
+        { invoiceNumber: { contains: search } },
+        { projectName: { contains: search } },
       ],
     }),
   };
@@ -217,9 +217,9 @@ export async function countTransactions(
     }),
     ...(search && {
       OR: [
-        { description: { contains: search, mode: "insensitive" } },
-        { invoiceNumber: { contains: search, mode: "insensitive" } },
-        { projectName: { contains: search, mode: "insensitive" } },
+        { description: { contains: search } },
+        { invoiceNumber: { contains: search } },
+        { projectName: { contains: search } },
       ],
     }),
   };
