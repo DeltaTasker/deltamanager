@@ -628,6 +628,17 @@ export default function ProposalsPageInline() {
                   }
 
                   // Modo lectura
+                  // Debug log
+                  if (proposal.status === "accepted") {
+                    console.log("Propuesta aceptada:", {
+                      id: proposal.id,
+                      title: proposal.title,
+                      status: proposal.status,
+                      transactionId: proposal.transactionId,
+                      hasTransactionId: !!proposal.transactionId,
+                    });
+                  }
+
                   return (
                     <InlineTableRow
                       key={proposal.id}
@@ -637,16 +648,16 @@ export default function ProposalsPageInline() {
                       onSave={() => {}}
                       onCancel={() => {}}
                       visibleFields={[
-                        <span className="font-medium">{proposal.title}</span>,
-                        <span>{proposal.clientName}</span>,
-                        <span>{proposal.conceptName}</span>,
-                        <span className="font-mono">${proposal.conceptPrice.toFixed(2)}</span>,
-                        <span>
+                        <span key="title" className="font-medium">{proposal.title}</span>,
+                        <span key="client">{proposal.clientName}</span>,
+                        <span key="concept">{proposal.conceptName}</span>,
+                        <span key="price" className="font-mono">${proposal.conceptPrice.toFixed(2)}</span>,
+                        <span key="date">
                           {proposal.sentDate
                             ? new Date(proposal.sentDate).toLocaleDateString("es-MX")
                             : "-"}
                         </span>,
-                        <Badge variant={STATUS_COLORS[proposal.status as keyof typeof STATUS_COLORS]}>
+                        <Badge key="status" variant={STATUS_COLORS[proposal.status as keyof typeof STATUS_COLORS]}>
                           {STATUS_LABELS[proposal.status as keyof typeof STATUS_LABELS]}
                         </Badge>,
                       ]}
