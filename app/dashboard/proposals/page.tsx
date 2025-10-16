@@ -261,13 +261,20 @@ export default function ProposalsPageInline() {
   };
 
 
-  const handleFileUpload = (files: string[]) => {
+  const handleFileUpload = (url: string) => {
     if (editingData) {
+      console.log("Archivo subido:", url);
       setEditingData({
         ...editingData,
-        attachments: [...editingData.attachments, ...files],
+        attachments: [...editingData.attachments, url],
       });
+      toast.success("Archivo subido exitosamente");
     }
+  };
+
+  const handleFileUploadError = (error: string) => {
+    console.error("Error subiendo archivo:", error);
+    toast.error(error);
   };
 
   const handleRemoveFile = (index: number) => {
@@ -564,9 +571,10 @@ export default function ProposalsPageInline() {
                             <div className="col-span-2">
                               <Label>Archivos Adjuntos</Label>
                               <FileUpload
-                                onUpload={handleFileUpload}
-                                maxFiles={5}
-                                acceptedTypes={["application/pdf", "image/*", "application/zip"]}
+                                category="proposals"
+                                accept=".pdf,.jpg,.jpeg,.png,.gif,.webp,.zip"
+                                onUploadComplete={handleFileUpload}
+                                onUploadError={handleFileUploadError}
                               />
                               {editingData.attachments.length > 0 && (
                                 <div className="mt-2 space-y-2">
