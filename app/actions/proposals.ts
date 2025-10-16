@@ -7,35 +7,33 @@ import { Prisma } from "@prisma/client";
 export type SerializedProposal = {
   id: string;
   companyId: string;
-  clientId: string | null;
-  clientName: string;
-  clientEmail: string | null;
+  clientId: string;
+  clientName: string; // Computed from client relation
+  conceptId: string;
+  conceptName: string; // Computed from concept relation
+  conceptPrice: number; // Computed from concept relation
   title: string;
   description: string | null;
-  subtotal: number;
-  tax: number;
-  discount: number;
-  total: number;
-  currency: string;
+  createdDate: Date;
+  sentDate: Date | null;
   status: string;
-  sentAt: Date | null;
-  viewedAt: Date | null;
-  respondedAt: Date | null;
-  expiresAt: Date | null;
-  pdfUrl: string | null;
-  documentUrl: string | null;
   attachments: string | null;
   notes: string | null;
-  paymentTerms: string | null;
-  validityDays: number;
   convertedToSale: boolean;
   transactionId: string | null;
-  conceptId: string | null;
-  invoiceId: string | null;
   internalNotes: string | null;
   tags: string | null;
   createdAt: Date;
   updatedAt: Date;
+};
+
+export type SerializedFollowUp = {
+  id: string;
+  proposalId: string;
+  date: Date;
+  type: string;
+  notes: string | null;
+  createdAt: Date;
 };
 
 function convertDecimalsToNumbers(obj: any): any {
@@ -65,60 +63,123 @@ export async function loadProposals(companyId: string): Promise<SerializedPropos
     where: {
       companyId,
     },
+    include: {
+      client: true,
+      concept: true,
+    },
     orderBy: {
       createdAt: "desc",
     },
   });
 
-  return proposals.map(convertDecimalsToNumbers);
+  return proposals.map(p => ({
+    id: p.id,
+    companyId: p.companyId,
+    clientId: p.clientId,
+    clientName: p.client.name,
+    conceptId: p.conceptId,
+    conceptName: p.concept.name,
+    conceptPrice: Number(p.concept.defaultAmount || 0),
+    title: p.title,
+    description: p.description,
+    createdDate: p.createdDate,
+    sentDate: p.sentDate,
+    status: p.status,
+    attachments: p.attachments,
+    notes: p.notes,
+    convertedToSale: p.convertedToSale,
+    transactionId: p.transactionId,
+    internalNotes: p.internalNotes,
+    tags: p.tags,
+    createdAt: p.createdAt,
+    updatedAt: p.updatedAt,
+  }));
+}
+
+export async function loadProposalFollowUps(proposalId: string): Promise<SerializedFollowUp[]> {
+  const followUps = await prisma.proposalFollowUp.findMany({
+    where: {
+      proposalId,
+    },
+    orderBy: {
+      date: "desc",
+    },
+  });
+
+  return followUps;
 }
 
 export async function createProposal(data: {
   companyId: string;
-  clientId?: string;
-  clientName: string;
-  clientEmail?: string;
-  conceptId?: string;
+  clientId: string;
+  conceptId: string;
   title: string;
   description?: string;
-  subtotal: number;
-  tax: number;
-  total: number;
-  currency: string;
-  status: string;
-  validityDays: number;
-  paymentTerms?: string;
+  status?: string;
+  sentDate?: Date;
   notes?: string;
   attachments?: string[];
 }) {
   try {
+    // Validaciones
+    if (!data.title || data.title.trim() === "") {
+      return { success: false, error: "El título es requerido" };
+    }
+    if (!data.clientId) {
+      return { success: false, error: "El cliente es requerido" };
+    }
+    if (!data.conceptId) {
+      return { success: false, error: "El concepto es requerido" };
+    }
+
     const proposal = await prisma.proposal.create({
       data: {
         companyId: data.companyId,
         clientId: data.clientId,
-        clientName: data.clientName,
-        clientEmail: data.clientEmail,
         conceptId: data.conceptId,
         title: data.title,
         description: data.description,
-        subtotal: data.subtotal,
-        tax: data.tax,
-        discount: 0,
-        total: data.total,
-        currency: data.currency,
-        status: data.status,
-        validityDays: data.validityDays,
-        paymentTerms: data.paymentTerms,
+        status: data.status || "sent",
+        sentDate: data.sentDate || new Date(),
         notes: data.notes,
         attachments: data.attachments ? JSON.stringify(data.attachments) : null,
+      },
+      include: {
+        client: true,
+        concept: true,
       },
     });
 
     revalidatePath("/dashboard/proposals");
-    return { success: true, proposal: convertDecimalsToNumbers(proposal) };
+    
+    return { 
+      success: true, 
+      proposal: {
+        id: proposal.id,
+        companyId: proposal.companyId,
+        clientId: proposal.clientId,
+        clientName: proposal.client.name,
+        conceptId: proposal.conceptId,
+        conceptName: proposal.concept.name,
+        conceptPrice: Number(proposal.concept.defaultAmount || 0),
+        title: proposal.title,
+        description: proposal.description,
+        createdDate: proposal.createdDate,
+        sentDate: proposal.sentDate,
+        status: proposal.status,
+        attachments: proposal.attachments,
+        notes: proposal.notes,
+        convertedToSale: proposal.convertedToSale,
+        transactionId: proposal.transactionId,
+        internalNotes: proposal.internalNotes,
+        tags: proposal.tags,
+        createdAt: proposal.createdAt,
+        updatedAt: proposal.updatedAt,
+      }
+    };
   } catch (error) {
     console.error("Error creating proposal:", error);
-    return { success: false, error: "Failed to create proposal" };
+    return { success: false, error: "Error al crear la propuesta" };
   }
 }
 
@@ -126,16 +187,18 @@ export async function updateProposal(data: {
   id: string;
   title?: string;
   description?: string;
-  subtotal?: number;
-  tax?: number;
-  total?: number;
   status?: string;
-  paymentTerms?: string;
+  sentDate?: Date;
   notes?: string;
   attachments?: string[];
 }) {
   try {
     const { id, attachments, ...updateData } = data;
+
+    // Validaciones
+    if (updateData.title !== undefined && updateData.title.trim() === "") {
+      return { success: false, error: "El título no puede estar vacío" };
+    }
 
     const proposal = await prisma.proposal.update({
       where: { id },
@@ -143,13 +206,42 @@ export async function updateProposal(data: {
         ...updateData,
         ...(attachments && { attachments: JSON.stringify(attachments) }),
       },
+      include: {
+        client: true,
+        concept: true,
+      },
     });
 
     revalidatePath("/dashboard/proposals");
-    return { success: true, proposal: convertDecimalsToNumbers(proposal) };
+    
+    return { 
+      success: true, 
+      proposal: {
+        id: proposal.id,
+        companyId: proposal.companyId,
+        clientId: proposal.clientId,
+        clientName: proposal.client.name,
+        conceptId: proposal.conceptId,
+        conceptName: proposal.concept.name,
+        conceptPrice: Number(proposal.concept.defaultAmount || 0),
+        title: proposal.title,
+        description: proposal.description,
+        createdDate: proposal.createdDate,
+        sentDate: proposal.sentDate,
+        status: proposal.status,
+        attachments: proposal.attachments,
+        notes: proposal.notes,
+        convertedToSale: proposal.convertedToSale,
+        transactionId: proposal.transactionId,
+        internalNotes: proposal.internalNotes,
+        tags: proposal.tags,
+        createdAt: proposal.createdAt,
+        updatedAt: proposal.updatedAt,
+      }
+    };
   } catch (error) {
     console.error("Error updating proposal:", error);
-    return { success: false, error: "Failed to update proposal" };
+    return { success: false, error: "Error al actualizar la propuesta" };
   }
 }
 
@@ -163,25 +255,74 @@ export async function deleteProposal(id: string) {
     return { success: true };
   } catch (error) {
     console.error("Error deleting proposal:", error);
-    return { success: false, error: "Failed to delete proposal" };
+    return { success: false, error: "Error al eliminar la propuesta" };
+  }
+}
+
+export async function addFollowUp(data: {
+  proposalId: string;
+  date: Date;
+  type: string;
+  notes?: string;
+}) {
+  try {
+    const followUp = await prisma.proposalFollowUp.create({
+      data: {
+        proposalId: data.proposalId,
+        date: data.date,
+        type: data.type,
+        notes: data.notes,
+      },
+    });
+
+    revalidatePath("/dashboard/proposals");
+    return { success: true, followUp };
+  } catch (error) {
+    console.error("Error adding follow-up:", error);
+    return { success: false, error: "Error al agregar seguimiento" };
   }
 }
 
 export async function acceptProposal(id: string) {
   try {
-    // Get proposal
+    // Get proposal with related data
     const proposal = await prisma.proposal.findUnique({
       where: { id },
       include: {
-        company: true,
+        client: true,
+        concept: true,
       },
     });
 
     if (!proposal) {
-      return { success: false, error: "Proposal not found" };
+      return { success: false, error: "Propuesta no encontrada" };
     }
 
-    // Create transaction (cobro)
+    // Calculate totals from concept
+    const concept = proposal.concept;
+    const price = Number(concept.defaultAmount || 0);
+    const tasaIVA = concept.tasaIVA / 100;
+    const tasaRetencionISR = concept.tasaRetencionISR / 100;
+    const tasaRetencionIVA = concept.tasaRetencionIVA / 100;
+
+    let subtotal: number;
+    let iva: number;
+
+    if (concept.ivaIncluded) {
+      // IVA Incluido
+      subtotal = parseFloat((price / (1 + tasaIVA)).toFixed(2));
+      iva = parseFloat((price - subtotal).toFixed(2));
+    } else {
+      // +IVA
+      subtotal = price;
+      iva = parseFloat((price * tasaIVA).toFixed(2));
+    }
+
+    const retencionISR = parseFloat((subtotal * tasaRetencionISR).toFixed(2));
+    const retencionIVA = parseFloat((iva * tasaRetencionIVA).toFixed(2));
+    const total = parseFloat((subtotal + iva - retencionISR - retencionIVA).toFixed(2));
+
+    // Create transaction (cobro) with status pending and invoiceType PUE
     const transaction = await prisma.transaction.create({
       data: {
         companyId: proposal.companyId,
@@ -190,12 +331,14 @@ export async function acceptProposal(id: string) {
         description: proposal.title,
         clientId: proposal.clientId,
         conceptId: proposal.conceptId,
-        amount: new Prisma.Decimal(proposal.total),
-        total: new Prisma.Decimal(proposal.total),
-        subtotal: new Prisma.Decimal(proposal.subtotal),
-        iva: new Prisma.Decimal(proposal.tax),
         quantity: 1,
-        unitPrice: new Prisma.Decimal(proposal.subtotal),
+        unitPrice: new Prisma.Decimal(price),
+        subtotal: new Prisma.Decimal(subtotal),
+        iva: new Prisma.Decimal(iva),
+        retencionISR: new Prisma.Decimal(retencionISR),
+        retencionIVA: new Prisma.Decimal(retencionIVA),
+        total: new Prisma.Decimal(total),
+        amount: new Prisma.Decimal(total),
         status: "pending",
         paymentStatus: "pending",
         invoiceType: "PUE",
@@ -211,7 +354,6 @@ export async function acceptProposal(id: string) {
         status: "accepted",
         convertedToSale: true,
         transactionId: transaction.id,
-        respondedAt: new Date(),
       },
     });
 
@@ -221,7 +363,6 @@ export async function acceptProposal(id: string) {
     return { success: true, transactionId: transaction.id };
   } catch (error) {
     console.error("Error accepting proposal:", error);
-    return { success: false, error: "Failed to accept proposal" };
+    return { success: false, error: "Error al aceptar la propuesta" };
   }
 }
-

@@ -283,6 +283,58 @@ async function main() {
 
   console.log("✅ Transacciones de gasto creadas:", expenseTransactions.length);
 
+  // 9. Crear propuestas de prueba
+  const proposals = await Promise.all([
+    prisma.proposal.create({
+      data: {
+        companyId: company.id,
+        clientId: clients[0].id,
+        conceptId: concepts[0].id,
+        title: "Propuesta de Desarrollo Web",
+        description: "Desarrollo de sitio web corporativo con React y Next.js",
+        status: "sent",
+        sentDate: new Date("2024-02-01"),
+        notes: "Cliente interesado, hacer seguimiento la próxima semana",
+      },
+    }),
+    prisma.proposal.create({
+      data: {
+        companyId: company.id,
+        clientId: clients[1].id,
+        conceptId: concepts[1].id,
+        title: "Consultoría IT - Febrero 2024",
+        description: "Servicios de consultoría tecnológica para optimización de infraestructura",
+        status: "sent",
+        sentDate: new Date("2024-02-05"),
+        notes: "Esperando respuesta del cliente",
+      },
+    }),
+  ]);
+
+  console.log("✅ Propuestas creadas:", proposals.length);
+
+  // 10. Crear seguimientos de propuestas
+  const followUps = await Promise.all([
+    prisma.proposalFollowUp.create({
+      data: {
+        proposalId: proposals[0].id,
+        date: new Date("2024-02-03"),
+        type: "llamada",
+        notes: "Cliente mostró interés, solicitó ajustes en el precio",
+      },
+    }),
+    prisma.proposalFollowUp.create({
+      data: {
+        proposalId: proposals[0].id,
+        date: new Date("2024-02-05"),
+        type: "correo",
+        notes: "Enviada propuesta ajustada con descuento del 10%",
+      },
+    }),
+  ]);
+
+  console.log("✅ Seguimientos de propuestas creados:", followUps.length);
+
   console.log("\n🎉 Seed completado exitosamente!");
   console.log("\n📊 Resumen:");
   console.log(`- Compañía: ${company.name}`);
@@ -293,6 +345,8 @@ async function main() {
   console.log(`- Cuentas bancarias: ${bankAccounts.length}`);
   console.log(`- Ingresos: ${incomeTransactions.length}`);
   console.log(`- Gastos: ${expenseTransactions.length}`);
+  console.log(`- Propuestas: ${proposals.length}`);
+  console.log(`- Seguimientos: ${followUps.length}`);
 }
 
 main()

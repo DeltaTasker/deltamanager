@@ -164,42 +164,26 @@ model Invoice {
 model Proposal {
   id          String  @id @default(cuid())
   companyId   String
-  clientId    String?
-  clientName  String
-  clientEmail String?
-  clientPhone String?
+  clientId    String
+  conceptId   String  // Relación con concepto (obligatorio)
   title       String
   description String?
 
-  // Montos y cálculos
-  subtotal Float
-  tax      Float  @default(0)
-  discount Float  @default(0)
-  total    Float
-  currency String @default("MXN")
+  // Fechas
+  createdDate DateTime  @default(now()) // Fecha de creación
+  sentDate    DateTime? // Fecha en que fue enviada
 
   // Seguimiento
-  status      String    @default("draft") // draft, sent, viewed, accepted, rejected, expired
-  sentAt      DateTime?
-  viewedAt    DateTime?
-  respondedAt DateTime?
-  expiresAt   DateTime?
+  status      String              @default("sent") // draft, sent, viewed, accepted, rejected, expired
+  followUps   ProposalFollowUp[] // Historial de seguimientos
 
   // Documentos
-  pdfUrl      String?
-  documentUrl String?
-  attachments String? // JSON array de URLs de archivos adjuntos
+  attachments String? // JSON array de URLs de archivos adjuntos (PDF, imágenes, ZIP)
   notes       String?
-
-  // Términos y condiciones
-  paymentTerms String?
-  validityDays Int     @default(30)
 
   // Conversión a venta
   convertedToSale Boolean @default(false)
   transactionId   String? // ID del cobro/transacción generado cuando se acepta
-  conceptId       String? // ID del concepto usado
-  invoiceId       String? // ID de la factura si se facturó
 
   // Metadata
   internalNotes String?
@@ -208,35 +192,27 @@ model Proposal {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  company Company        @relation(fields: [companyId], references: [id], onDelete: Cascade)
-  items   ProposalItem[]
+  company Company @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  client  Client  @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  concept Concept @relation(fields: [conceptId], references: [id], onDelete: Cascade)
 
   @@index([companyId, status])
-  @@index([clientEmail])
+  @@index([clientId])
   @@map("proposals")
 }
 
-model ProposalItem {
-  id         String @id @default(cuid())
+model ProposalFollowUp {
+  id         String   @id @default(cuid())
   proposalId String
-
-  description String
-  quantity    Float
-  unitPrice   Float
-  subtotal    Float
-  tax         Float  @default(0)
-  discount    Float  @default(0)
-  total       Float
-
-  // SAT Info (para cuando se convierta en factura)
-  satCode String? // Clave de producto/servicio SAT
-  satUnit String? // Unidad de medida SAT
+  date       DateTime @default(now())
+  type       String // "llamada", "correo", "whatsapp", "reunión", "otro"
+  notes      String?
 
   createdAt DateTime @default(now())
 
   proposal Proposal @relation(fields: [proposalId], references: [id], onDelete: Cascade)
 
-  @@map("proposal_items")
+  @@map("proposal_followups")
 }
 
 model Expense {
@@ -366,6 +342,7 @@ model Client {
 
   companyRel   Company       @relation(fields: [companyId], references: [id], onDelete: Cascade)
   transactions Transaction[]
+  proposals    Proposal[] // Relación inversa con Proposal
 
   @@index([companyId, isActive])
   @@index([rfc])
@@ -470,6 +447,7 @@ model Concept {
 
   companyRel   Company       @relation(fields: [companyId], references: [id], onDelete: Cascade)
   transactions Transaction[]
+  proposals    Proposal[] // Relación inversa con Proposal
 
   @@index([companyId, isActive])
   @@map("concepts")

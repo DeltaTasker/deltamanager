@@ -82,12 +82,12 @@ export async function loadDashboardData(
 
   // Get pending items (status = pending or paymentStatus = pending)
   const pendingIncome: PendingItem[] = incomeTransactions
-    .filter(t => t.paymentStatus === "pending" && !t.parentProjectId) // Only top-level, no sub-payments
+    .filter(t => t.paymentStatus === "pending" && !t.parentProjectId && t.date) // Only top-level, no sub-payments, with valid date
     .map(t => ({
       id: t.id,
       clientName: t.client?.name || "Cliente desconocido",
       amount: Number(t.total || 0),
-      dueDate: new Date(t.date).toISOString(),
+      dueDate: new Date(t.date!).toISOString(),
       reference: t.invoiceNumber || t.projectName || `COB-${t.id.slice(-6).toUpperCase()}`,
       type: "income" as const,
     }))
@@ -95,12 +95,12 @@ export async function loadDashboardData(
     .slice(0, 8); // Limit to 8 items
 
   const pendingExpenses: PendingItem[] = expenseTransactions
-    .filter(t => t.paymentStatus === "pending" && !t.parentProjectId)
+    .filter(t => t.paymentStatus === "pending" && !t.parentProjectId && t.date) // Only with valid date
     .map(t => ({
       id: t.id,
       clientName: t.description || "Proveedor/Empleado",
       amount: Number(t.total || 0),
-      dueDate: new Date(t.date).toISOString(),
+      dueDate: new Date(t.date!).toISOString(),
       reference: t.invoiceNumber || `PAG-${t.id.slice(-6).toUpperCase()}`,
       type: "expense" as const,
     }))
