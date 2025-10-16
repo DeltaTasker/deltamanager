@@ -9,6 +9,14 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { Checkbox } from "@/components/ui/checkbox";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import {
   Table,
   TableBody,
@@ -208,9 +216,11 @@ export default function ProvidersPage() {
   };
 
   const filteredProviders = providers.filter((provider) =>
-    provider.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    provider.company.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    (provider.rfc && provider.rfc.toLowerCase().includes(searchTerm.toLowerCase()))
+    provider.isActive && ( // Solo mostrar proveedores activos
+      provider.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      provider.company.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      (provider.rfc && provider.rfc.toLowerCase().includes(searchTerm.toLowerCase()))
+    )
   );
 
   return (
@@ -262,13 +272,15 @@ export default function ProvidersPage() {
 
               <div className="grid gap-4 md:grid-cols-2">
                 <div className="space-y-2">
-                  <Label htmlFor="rfc">RFC</Label>
+                  <Label htmlFor="rfc">RFC {formData.isForeign && "(Deshabilitado - Extranjero)"}</Label>
                   <Input
                     id="rfc"
                     value={formData.rfc}
                     onChange={(e) => setFormData({ ...formData, rfc: e.target.value.toUpperCase() })}
-                    placeholder="Ej: ABC123456XYZ"
+                    placeholder={formData.isForeign ? "No aplica para extranjeros" : "Ej: ABC123456XYZ"}
                     maxLength={13}
+                    disabled={formData.isForeign}
+                    className={formData.isForeign ? "bg-muted cursor-not-allowed" : ""}
                   />
                 </div>
                 <div className="space-y-2">
@@ -326,6 +338,70 @@ export default function ProvidersPage() {
                 />
               </div>
 
+              {/* Checkbox: Es Extranjero */}
+              <div className="flex items-center space-x-2 pt-2">
+                <Checkbox
+                  id="isForeign"
+                  checked={formData.isForeign}
+                  onCheckedChange={(checked) => setFormData({ ...formData, isForeign: checked as boolean, rfc: checked ? "" : formData.rfc })}
+                />
+                <Label htmlFor="isForeign" className="cursor-pointer">
+                  Es Extranjero (no requiere RFC)
+                </Label>
+              </div>
+
+              {/* Sección de Pagos */}
+              <div className="border-t pt-4 mt-4">
+                <h3 className="text-sm font-semibold mb-3">Configuración de Pagos</h3>
+                
+                {/* Checkbox: Pagos Variables */}
+                <div className="flex items-center space-x-2 mb-4">
+                  <Checkbox
+                    id="paymentVariable"
+                    checked={formData.paymentType === "variable"}
+                    onCheckedChange={(checked) => setFormData({ ...formData, paymentType: checked ? "variable" : "fixed" })}
+                  />
+                  <Label htmlFor="paymentVariable" className="cursor-pointer">
+                    Pagos Variables (monto no fijo)
+                  </Label>
+                </div>
+
+                {/* Campos condicionales para pagos fijos */}
+                {formData.paymentType === "fixed" && (
+                  <div className="grid gap-4 md:grid-cols-2 pl-6 border-l-2 border-blue-500">
+                    <div className="space-y-2">
+                      <Label htmlFor="paymentAmount">Monto de Pago *</Label>
+                      <Input
+                        id="paymentAmount"
+                        type="number"
+                        step="0.01"
+                        value={formData.paymentAmount}
+                        onChange={(e) => setFormData({ ...formData, paymentAmount: e.target.value })}
+                        placeholder="5000.00"
+                        required={formData.paymentType === "fixed"}
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="paymentFrequency">Frecuencia de Pago *</Label>
+                      <Select
+                        value={formData.paymentFrequency}
+                        onValueChange={(value) => setFormData({ ...formData, paymentFrequency: value as any })}
+                      >
+                        <SelectTrigger>
+                          <SelectValue placeholder="Selecciona frecuencia" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="weekly">Semanal</SelectItem>
+                          <SelectItem value="biweekly">Quincenal</SelectItem>
+                          <SelectItem value="monthly">Mensual</SelectItem>
+                          <SelectItem value="annual">Anual</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </div>
+                )}
+              </div>
+
               <div className="space-y-2">
                 <Label htmlFor="notes">Notas</Label>
                 <Textarea
@@ -377,51 +453,69 @@ export default function ProvidersPage() {
                   <TableRow>
                     <TableHead>Nombre</TableHead>
                     <TableHead>Razón Social</TableHead>
+                    <TableHead>Tipo</TableHead>
                     <TableHead>RFC</TableHead>
-                    <TableHead>Email</TableHead>
-                    <TableHead>Teléfono</TableHead>
+                    <TableHead>Pago</TableHead>
                     <TableHead className="text-right">Transacciones</TableHead>
                     <TableHead className="text-right">Acciones</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {filteredProviders.map((provider) => (
-                    <TableRow key={provider.id}>
-                      <TableCell className="font-medium">{provider.name}</TableCell>
-                      <TableCell>
-                        <div className="flex items-center gap-2">
-                          <Building2 className="h-4 w-4 text-muted-foreground" />
-                          {provider.company}
-                        </div>
-                      </TableCell>
-                      <TableCell>
-                        <code className="text-xs">{provider.rfc || "-"}</code>
-                      </TableCell>
-                      <TableCell className="text-sm">{provider.email || "-"}</TableCell>
-                      <TableCell className="text-sm">{provider.phone || "-"}</TableCell>
-                      <TableCell className="text-right">
-                        <Badge variant="secondary">{provider._count?.transactions || 0}</Badge>
-                      </TableCell>
-                      <TableCell className="text-right">
-                        <div className="flex justify-end gap-2">
-                          <Button
-                            size="sm"
-                            variant="ghost"
-                            onClick={() => handleStartEdit(provider)}
-                          >
-                            <Edit className="h-4 w-4" />
-                          </Button>
-                          <Button
-                            size="sm"
-                            variant="ghost"
-                            onClick={() => handleDeleteClick(provider.id)}
-                          >
-                            <Trash2 className="h-4 w-4 text-red-500" />
-                          </Button>
-                        </div>
-                      </TableCell>
-                    </TableRow>
-                  ))}
+                  {filteredProviders.map((provider) => {
+                    const paymentDisplay = provider.paymentType === "fixed" && provider.paymentAmount
+                      ? `$${provider.paymentAmount.toFixed(2)} / ${
+                          provider.paymentFrequency === "weekly" ? "Semanal" :
+                          provider.paymentFrequency === "biweekly" ? "Quincenal" :
+                          provider.paymentFrequency === "monthly" ? "Mensual" : "Anual"
+                        }`
+                      : "Variable";
+                    
+                    return (
+                      <TableRow key={provider.id}>
+                        <TableCell className="font-medium">{provider.name}</TableCell>
+                        <TableCell>
+                          <div className="flex items-center gap-2">
+                            <Building2 className="h-4 w-4 text-muted-foreground" />
+                            {provider.company}
+                          </div>
+                        </TableCell>
+                        <TableCell>
+                          <Badge variant={provider.isForeign ? "secondary" : "default"}>
+                            {provider.isForeign ? "Extranjero" : "Nacional"}
+                          </Badge>
+                        </TableCell>
+                        <TableCell>
+                          <code className="text-xs">{provider.rfc || (provider.isForeign ? "N/A" : "-")}</code>
+                        </TableCell>
+                        <TableCell>
+                          <span className={`text-sm ${provider.paymentType === "fixed" ? "font-semibold" : "text-muted-foreground"}`}>
+                            {paymentDisplay}
+                          </span>
+                        </TableCell>
+                        <TableCell className="text-right">
+                          <Badge variant="secondary">{provider._count?.transactions || 0}</Badge>
+                        </TableCell>
+                        <TableCell className="text-right">
+                          <div className="flex justify-end gap-2">
+                            <Button
+                              size="sm"
+                              variant="ghost"
+                              onClick={() => handleStartEdit(provider)}
+                            >
+                              <Edit className="h-4 w-4" />
+                            </Button>
+                            <Button
+                              size="sm"
+                              variant="ghost"
+                              onClick={() => handleDeleteClick(provider.id)}
+                            >
+                              <Trash2 className="h-4 w-4 text-red-500" />
+                            </Button>
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    );
+                  })}
                 </TableBody>
               </Table>
             </div>
