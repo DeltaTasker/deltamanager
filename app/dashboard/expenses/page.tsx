@@ -133,31 +133,68 @@ const mockExpenseData: ExpenseTransaction[] = [
 ];
 
 export default function ExpensesPage() {
-  const [providers] = useState<Provider[]>(mockProviders);
-  const [employees] = useState<Employee[]>(mockEmployees);
-  const [bankAccounts] = useState<BankAccount[]>(mockBankAccounts);
-  const [transactions, setTransactions] = useState<ExpenseTransaction[]>(() => {
-    // Cargar desde localStorage al inicializar
-    if (typeof window !== 'undefined') {
-      const saved = localStorage.getItem('deltamanager_expense_transactions');
-      if (saved) {
-        try {
-          return JSON.parse(saved);
-        } catch (e) {
-          console.error('Error parsing localStorage:', e);
-        }
-      }
-    }
-    return mockExpenseData;
-  });
+  const [providers, setProviders] = useState<Provider[]>([]);
+  const [employees, setEmployees] = useState<Employee[]>([]);
+  const [bankAccounts, setBankAccounts] = useState<BankAccount[]>([]);
+  const [transactions, setTransactions] = useState<ExpenseTransaction[]>([]);
+  const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
 
-  // Guardar en localStorage cuando cambian las transacciones
+  // Cargar datos reales de la base de datos
   useEffect(() => {
-    if (typeof window !== 'undefined') {
-      localStorage.setItem('deltamanager_expense_transactions', JSON.stringify(transactions));
-    }
-  }, [transactions]);
+    const loadAllData = async () => {
+      try {
+        setLoading(true);
+        const companyId = "temp-company-id";
+        const data = await loadExpenseData(companyId);
+        
+        // Mapear los datos de la API a los tipos del componente
+        setProviders(data.providers.map((p: any) => ({
+          id: p.id,
+          name: p.name,
+          company: p.company,
+          category: p.category || "",
+        })));
+        
+        setEmployees(data.employees.map((e: any) => ({
+          id: e.id,
+          name: e.name,
+          lastName: e.lastName,
+          fullName: e.fullName,
+          salary: e.salary,
+          salaryPeriod: e.paymentFreq === "biweekly" ? "biweekly" : "monthly",
+        })));
+        
+        setBankAccounts(data.bankAccounts);
+        
+        // Convertir transacciones al formato del componente
+        setTransactions(data.transactions.map((t: any) => ({
+          id: t.id,
+          paymentType: t.providerId ? "provider" : "employee",
+          providerId: t.providerId,
+          providerName: t.provider?.company,
+          employeeId: t.employeeId,
+          employeeName: t.employee?.fullName,
+          description: t.description || "",
+          amount: Number(t.total || t.amount || 0),
+          date: new Date(t.date).toISOString().split('T')[0],
+          paymentProofFiles: t.paymentProofFiles ? JSON.parse(t.paymentProofFiles) : [],
+          invoiceFiles: t.invoiceFiles ? JSON.parse(t.invoiceFiles) : [],
+          bankAccountId: t.bankAccountId,
+          bankAccountName: data.bankAccounts.find((b: any) => b.id === t.bankAccountId)?.name,
+          paymentStatus: t.paymentStatus || "pending",
+          status: t.status || "pending",
+        })));
+      } catch (error) {
+        console.error("Error loading expense data:", error);
+        toast.error("Error al cargar datos de gastos");
+      } finally {
+        setLoading(false);
+      }
+    };
+    
+    loadAllData();
+  }, []);
   const [selectedStatus, setSelectedStatus] = useState("all");
   const [selectedPaymentType, setSelectedPaymentType] = useState("all");
   const [selectedPaymentStatus, setSelectedPaymentStatus] = useState("all");

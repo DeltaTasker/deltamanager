@@ -2,6 +2,7 @@
 
 import { getTransactions, type TransactionWithRelations, type GetTransactionsParams } from "@/modules/transactions/server/queries";
 import { getProviders, type ProviderWithStats } from "@/modules/providers/server/queries";
+import { getEmployees, type EmployeeWithStats } from "@/modules/employees/server/queries";
 import { getConcepts, type ConceptWithStats } from "@/modules/concepts/server/queries";
 import { getBankAccounts } from "@/modules/bank-accounts/server/queries";
 import type { Prisma } from "@prisma/client";
@@ -68,9 +69,15 @@ export type SerializedConcept = Omit<ConceptWithStats, 'defaultAmount' | 'tasaIV
   _count?: { transactions: number };
 };
 
+export type SerializedEmployee = Omit<EmployeeWithStats, 'salary' | '_count'> & {
+  salary: number | null;
+  _count?: { transactions: number };
+};
+
 export type ExpensePageData = {
   transactions: SerializedTransaction[];
   providers: SerializedProvider[];
+  employees: SerializedEmployee[];
   concepts: SerializedConcept[];
   bankAccounts: any[];
 };
@@ -126,9 +133,10 @@ function serializeTransaction(t: any): SerializedTransaction {
 }
 
 export async function loadExpenseData(companyId: string): Promise<ExpensePageData> {
-  const [transactions, providers, concepts, bankAccounts] = await Promise.all([
+  const [transactions, providers, employees, concepts, bankAccounts] = await Promise.all([
     getTransactions({ companyId, type: "expense" }),
     getProviders(companyId),
+    getEmployees(companyId),
     getConcepts(companyId),
     getBankAccounts(companyId),
   ]);
@@ -138,6 +146,11 @@ export async function loadExpenseData(companyId: string): Promise<ExpensePageDat
     providers: providers.map(p => ({
       ...p,
       _count: p._count,
+    })),
+    employees: employees.map(e => ({
+      ...e,
+      salary: e.salary ? Number(e.salary) : null,
+      _count: e._count,
     })),
     concepts: concepts.map(c => ({
       ...c,
