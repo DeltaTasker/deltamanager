@@ -109,6 +109,43 @@ export async function loadProposalFollowUps(proposalId: string): Promise<Seriali
   return followUps;
 }
 
+export async function getProposalByTransactionId(transactionId: string): Promise<SerializedProposal | null> {
+  const proposal = await prisma.proposal.findFirst({
+    where: {
+      transactionId,
+    },
+    include: {
+      client: true,
+      concept: true,
+    },
+  });
+
+  if (!proposal) return null;
+
+  return {
+    id: proposal.id,
+    companyId: proposal.companyId,
+    clientId: proposal.clientId,
+    clientName: proposal.client.name,
+    conceptId: proposal.conceptId,
+    conceptName: proposal.concept.name,
+    conceptPrice: Number(proposal.concept.defaultAmount || 0),
+    title: proposal.title,
+    description: proposal.description,
+    createdDate: proposal.createdDate,
+    sentDate: proposal.sentDate,
+    status: proposal.status,
+    attachments: proposal.attachments,
+    notes: proposal.notes,
+    convertedToSale: proposal.convertedToSale,
+    transactionId: proposal.transactionId,
+    internalNotes: proposal.internalNotes,
+    tags: proposal.tags,
+    createdAt: proposal.createdAt,
+    updatedAt: proposal.updatedAt,
+  };
+}
+
 export async function createProposal(data: {
   companyId: string;
   clientId: string;

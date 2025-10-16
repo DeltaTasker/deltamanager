@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Plus, Search, Edit, Trash2, CheckCircle, Eye, MessageSquare, ExternalLink } from "lucide-react";
+import { Plus, Search, Edit, Trash2, CheckCircle, Eye, MessageSquare } from "lucide-react";
 import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
@@ -606,9 +606,9 @@ export default function ProposalsPageInline() {
                             </div>
                             {editingData.conceptId && (
                               <div className="col-span-2">
-                                <div className="rounded-lg border border-gray-300 bg-gray-50 dark:bg-gray-800 p-3">
-                                  <p className="text-sm font-semibold mb-2 text-gray-700 dark:text-gray-300">Vista previa del monto:</p>
-                                  <div className="space-y-1 text-sm text-gray-800 dark:text-gray-200">
+                                <div className="rounded-lg border bg-gray-50 p-3">
+                                  <p className="text-sm font-semibold mb-2">Vista previa del monto:</p>
+                                  <div className="space-y-1 text-sm">
                                     <div className="flex justify-between">
                                       <span>Subtotal:</span>
                                       <span className="font-mono">${conceptTotal.subtotal.toFixed(2)}</span>
@@ -617,7 +617,7 @@ export default function ProposalsPageInline() {
                                       <span>IVA:</span>
                                       <span className="font-mono">${conceptTotal.iva.toFixed(2)}</span>
                                     </div>
-                                    <div className="flex justify-between border-t border-gray-300 dark:border-gray-600 pt-1 font-semibold">
+                                    <div className="flex justify-between border-t pt-1 font-semibold">
                                       <span>Total:</span>
                                       <span className="font-mono">${conceptTotal.total.toFixed(2)}</span>
                                     </div>
@@ -677,18 +677,6 @@ export default function ProposalsPageInline() {
                               </Button>
                             </>
                           )}
-                          {proposal.status === "accepted" && proposal.transactionId && (
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={() => {
-                                window.location.href = `/dashboard/income?transaction=${proposal.transactionId}`;
-                              }}
-                              title="Ver cobranza relacionada"
-                            >
-                              <ExternalLink className="h-4 w-4 text-purple-600" />
-                            </Button>
-                          )}
                           {proposal.attachments && JSON.parse(proposal.attachments).length > 0 && (
                             <Button
                               variant="ghost"
@@ -699,7 +687,6 @@ export default function ProposalsPageInline() {
                                   handlePreviewFile(files[0], files[0].split("/").pop() || "archivo");
                                 }
                               }}
-                              title="Ver comprobante"
                             >
                               <Eye className="h-4 w-4 text-blue-600" />
                             </Button>
