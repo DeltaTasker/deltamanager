@@ -500,14 +500,28 @@ export default function IncomePage() {
 
               <div>
                 <Label>Concepto</Label>
-                <Select value={formData.conceptId} onValueChange={(v) => setFormData(prev => ({ ...prev, conceptId: v }))}>
+                <Select 
+                  value={formData.conceptId} 
+                  onValueChange={(conceptId) => {
+                    // Buscar el concepto seleccionado
+                    const selectedConcept = concepts.find(c => c.id === conceptId);
+                    // Actualizar conceptId y precio unitario automáticamente
+                    setFormData(prev => ({ 
+                      ...prev, 
+                      conceptId,
+                      unitPrice: selectedConcept?.defaultAmount 
+                        ? selectedConcept.defaultAmount.toString() 
+                        : prev.unitPrice
+                    }));
+                  }}
+                >
                   <SelectTrigger>
                     <SelectValue placeholder="Seleccionar concepto" />
                   </SelectTrigger>
                   <SelectContent>
                     {concepts.map(concept => (
                       <SelectItem key={concept.id} value={concept.id}>
-                        {concept.name}
+                        {concept.name} {concept.defaultAmount && `($${Number(concept.defaultAmount).toFixed(2)})`}
                       </SelectItem>
                     ))}
                   </SelectContent>
