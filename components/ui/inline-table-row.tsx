@@ -30,14 +30,47 @@ export function InlineTableRow({
   className,
 }: InlineTableRowProps) {
   if (!isEditing) {
-    // Modo lectura normal
+    // Modo lectura con acordeón
     return (
-      <TableRow className={className}>
-        {visibleFields.map((field, index) => (
-          <TableCell key={index}>{field}</TableCell>
-        ))}
-        <TableCell className="text-right">{actionButtons}</TableCell>
-      </TableRow>
+      <>
+        <TableRow className={className}>
+          {visibleFields.map((field, index) => (
+            <TableCell key={index}>{field}</TableCell>
+          ))}
+          <TableCell className="text-right">
+            <div className="flex justify-end gap-2">
+              {expandedContent && (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={onToggleExpand}
+                  className="h-8 w-8 p-0"
+                >
+                  {isExpanded ? (
+                    <ChevronUp className="h-4 w-4" />
+                  ) : (
+                    <ChevronDown className="h-4 w-4" />
+                  )}
+                </Button>
+              )}
+              {actionButtons}
+            </div>
+          </TableCell>
+        </TableRow>
+        {isExpanded && expandedContent && (
+          <TableRow>
+            <TableCell colSpan={visibleFields.length + 1} className="p-4 bg-gray-50 dark:bg-gray-900">
+              <div className="rounded-lg border bg-white dark:bg-gray-800 p-4">
+                <div className="flex items-center gap-2 mb-3 text-sm font-semibold text-gray-700 dark:text-gray-300">
+                  <ChevronDown className="h-4 w-4" />
+                  Ver Detalles
+                </div>
+                {expandedContent}
+              </div>
+            </TableCell>
+          </TableRow>
+        )}
+      </>
     );
   }
 
