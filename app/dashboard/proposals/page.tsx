@@ -587,6 +587,28 @@ export default function ProposalsPageInline() {
                             }
                             className="h-9"
                           />,
+                          // Último Seguimiento (solo lectura en modo edición)
+                          <div key="followup-edit" className="text-xs text-gray-500">
+                            {!isNew && (
+                              (() => {
+                                const proposalFollowUps = followUps[editingData.id || ""] || [];
+                                const lastFollowUp = proposalFollowUps[0];
+                                return lastFollowUp ? (
+                                  <div>
+                                    <div className="font-medium">
+                                      {new Date(lastFollowUp.date).toLocaleDateString("es-MX")}
+                                    </div>
+                                    <div className="truncate max-w-[120px]">
+                                      {lastFollowUp.notes}
+                                    </div>
+                                  </div>
+                                ) : (
+                                  <span className="text-gray-400">Sin seguimiento</span>
+                                );
+                              })()
+                            )}
+                            {isNew && <span className="text-gray-400">-</span>}
+                          </div>,
                           // Estatus
                           <Select
                             value={editingData.status}
