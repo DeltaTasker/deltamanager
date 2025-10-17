@@ -36,7 +36,10 @@ import {
   updateProposal, 
   deleteProposal,
   acceptProposal,
+  loadProposalFollowUps,
+  addFollowUp,
   type SerializedProposal,
+  type SerializedFollowUp,
 } from "@/app/actions/proposals";
 import { loadClients, type SerializedClient } from "@/app/actions/clients";
 import { loadConcepts, type SerializedConcept } from "@/app/actions/concepts";
@@ -58,6 +61,14 @@ const STATUS_COLORS = {
   rejected: "destructive",
   expired: "secondary",
 } as const;
+
+const FOLLOWUP_TYPES = [
+  { value: "llamada", label: "Llamada" },
+  { value: "correo", label: "Correo" },
+  { value: "whatsapp", label: "WhatsApp" },
+  { value: "reunion", label: "Reunión" },
+  { value: "otro", label: "Otro" },
+];
 
 type EditingProposal = {
   id: string | null; // null = nuevo
@@ -89,6 +100,14 @@ export default function ProposalsPageInline() {
   const [deleteTargetId, setDeleteTargetId] = useState<string | null>(null);
   const [previewFileUrl, setPreviewFileUrl] = useState<string | null>(null);
   const [previewFileName, setPreviewFileName] = useState<string>("");
+  
+  // Estados para seguimientos
+  const [followUps, setFollowUps] = useState<{[key: string]: SerializedFollowUp[]}>({});
+  const [newFollowUp, setNewFollowUp] = useState({
+    date: new Date().toISOString().split('T')[0],
+    type: "llamada",
+    notes: "",
+  });
 
   useEffect(() => {
     loadData();
@@ -291,6 +310,49 @@ export default function ProposalsPageInline() {
     setPreviewFileName(fileName);
   };
 
+  const loadFollowUpsForProposal = async (proposalId: string) => {
+    try {
+      const followUpsData = await loadProposalFollowUps(proposalId);
+      setFollowUps(prev => ({
+        ...prev,
+        [proposalId]: followUpsData
+      }));
+    } catch (error) {
+      console.error("Error loading follow-ups:", error);
+    }
+  };
+
+  const handleAddFollowUp = async (proposalId: string) => {
+    try {
+      if (!newFollowUp.notes || newFollowUp.notes.trim() === "") {
+        toast.error("Debes agregar una nota al seguimiento");
+        return;
+      }
+
+      const result = await addFollowUp({
+        proposalId,
+        date: new Date(newFollowUp.date),
+        type: newFollowUp.type,
+        notes: newFollowUp.notes,
+      });
+
+      if (result.success) {
+        toast.success("Seguimiento agregado");
+        await loadFollowUpsForProposal(proposalId);
+        setNewFollowUp({
+          date: new Date().toISOString().split('T')[0],
+          type: "llamada",
+          notes: "",
+        });
+      } else {
+        toast.error("Error al agregar seguimiento");
+      }
+    } catch (error) {
+      console.error("Error adding follow-up:", error);
+      toast.error("Error al agregar seguimiento");
+    }
+  };
+
   const filteredProposals = proposals.filter((proposal) => {
     const matchesSearch = 
       proposal.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -436,6 +498,7 @@ export default function ProposalsPageInline() {
                 <TableHead>Concepto</TableHead>
                 <TableHead>Total</TableHead>
                 <TableHead>Fecha Envío</TableHead>
+                <TableHead>Último Seguimiento</TableHead>
                 <TableHead>Estatus</TableHead>
                 <TableHead className="text-right">Acciones</TableHead>
               </TableRow>
@@ -443,7 +506,7 @@ export default function ProposalsPageInline() {
             <TableBody>
               {displayProposals.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={7} className="text-center text-gray-500">
+                  <TableCell colSpan={8} className="text-center text-gray-500">
                     No hay propuestas
                   </TableCell>
                 </TableRow>
@@ -636,23 +699,29 @@ export default function ProposalsPageInline() {
                   }
 
                   // Modo lectura
-                  // Debug log
-                  if (proposal.status === "accepted") {
-                    console.log("Propuesta aceptada:", {
-                      id: proposal.id,
-                      title: proposal.title,
-                      status: proposal.status,
-                      transactionId: proposal.transactionId,
-                      hasTransactionId: !!proposal.transactionId,
-                    });
+                  // Cargar seguimientos si el acordeón se expande
+                  if (expandedId === proposal.id && !followUps[proposal.id]) {
+                    loadFollowUpsForProposal(proposal.id);
                   }
+
+                  const proposalFollowUps = followUps[proposal.id] || [];
+                  const lastFollowUp = proposalFollowUps[0]; // El más reciente
 
                   return (
                     <InlineTableRow
                       key={proposal.id}
                       isEditing={false}
-                      isExpanded={false}
-                      onToggleExpand={() => {}}
+                      isExpanded={expandedId === proposal.id}
+                      onToggleExpand={() => {
+                        if (expandedId === proposal.id) {
+                          setExpandedId(null);
+                        } else {
+                          setExpandedId(proposal.id);
+                          if (!followUps[proposal.id]) {
+                            loadFollowUpsForProposal(proposal.id);
+                          }
+                        }
+                      }}
                       onSave={() => {}}
                       onCancel={() => {}}
                       visibleFields={[
@@ -665,10 +734,152 @@ export default function ProposalsPageInline() {
                             ? new Date(proposal.sentDate).toLocaleDateString("es-MX")
                             : "-"}
                         </span>,
+                        <div key="followup" className="text-sm">
+                          {lastFollowUp ? (
+                            <div>
+                              <div className="font-medium text-xs text-gray-500">
+                                {new Date(lastFollowUp.date).toLocaleDateString("es-MX")}
+                              </div>
+                              <div className="text-xs text-gray-700 dark:text-gray-300 truncate max-w-[150px]">
+                                {lastFollowUp.notes}
+                              </div>
+                            </div>
+                          ) : (
+                            <span className="text-xs text-gray-400">Sin seguimiento</span>
+                          )}
+                        </div>,
                         <Badge key="status" variant={STATUS_COLORS[proposal.status as keyof typeof STATUS_COLORS]}>
                           {STATUS_LABELS[proposal.status as keyof typeof STATUS_LABELS]}
                         </Badge>,
                       ]}
+                      expandedContent={
+                        <div className="space-y-4">
+                          {/* Información de la propuesta */}
+                          <div className="grid grid-cols-2 gap-4">
+                            <div>
+                              <Label className="text-xs text-gray-500">Descripción</Label>
+                              <p className="text-sm mt-1">{proposal.description || "Sin descripción"}</p>
+                            </div>
+                            <div>
+                              <Label className="text-xs text-gray-500">Notas Internas</Label>
+                              <p className="text-sm mt-1">{proposal.notes || "Sin notas"}</p>
+                            </div>
+                          </div>
+
+                          {/* Archivos adjuntos */}
+                          {proposal.attachments && JSON.parse(proposal.attachments).length > 0 && (
+                            <div>
+                              <Label className="text-xs text-gray-500">Archivos Adjuntos</Label>
+                              <div className="mt-2 space-y-2">
+                                {JSON.parse(proposal.attachments).map((file: string, index: number) => {
+                                  const fileName = file.split("/").pop() || "archivo";
+                                  return (
+                                    <div
+                                      key={index}
+                                      className="flex items-center justify-between rounded border p-2 text-sm"
+                                    >
+                                      <span className="truncate">{fileName}</span>
+                                      <Button
+                                        variant="ghost"
+                                        size="sm"
+                                        onClick={() => handlePreviewFile(file, fileName)}
+                                      >
+                                        <Eye className="h-3 w-3" />
+                                      </Button>
+                                    </div>
+                                  );
+                                })}
+                              </div>
+                            </div>
+                          )}
+
+                          {/* Seguimientos */}
+                          <div className="border-t pt-4">
+                            <Label className="text-sm font-semibold">Seguimientos</Label>
+                            
+                            {/* Agregar nuevo seguimiento */}
+                            <div className="mt-3 rounded-lg border bg-gray-50 dark:bg-gray-900 p-3 space-y-3">
+                              <p className="text-xs font-medium text-gray-700 dark:text-gray-300">Agregar Seguimiento</p>
+                              <div className="grid grid-cols-3 gap-2">
+                                <div>
+                                  <Label className="text-xs">Fecha</Label>
+                                  <Input
+                                    type="date"
+                                    value={newFollowUp.date}
+                                    onChange={(e) => setNewFollowUp({ ...newFollowUp, date: e.target.value })}
+                                    className="h-8 text-xs"
+                                  />
+                                </div>
+                                <div>
+                                  <Label className="text-xs">Tipo</Label>
+                                  <Select
+                                    value={newFollowUp.type}
+                                    onValueChange={(value) => setNewFollowUp({ ...newFollowUp, type: value })}
+                                  >
+                                    <SelectTrigger className="h-8 text-xs">
+                                      <SelectValue />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                      {FOLLOWUP_TYPES.map((type) => (
+                                        <SelectItem key={type.value} value={type.value}>
+                                          {type.label}
+                                        </SelectItem>
+                                      ))}
+                                    </SelectContent>
+                                  </Select>
+                                </div>
+                                <div className="col-span-1 flex items-end">
+                                  <Button
+                                    size="sm"
+                                    onClick={() => handleAddFollowUp(proposal.id)}
+                                    className="h-8 w-full"
+                                  >
+                                    Agregar
+                                  </Button>
+                                </div>
+                              </div>
+                              <div>
+                                <Label className="text-xs">Notas</Label>
+                                <Textarea
+                                  value={newFollowUp.notes}
+                                  onChange={(e) => setNewFollowUp({ ...newFollowUp, notes: e.target.value })}
+                                  placeholder="¿Qué pasó en este seguimiento?"
+                                  rows={2}
+                                  className="text-xs"
+                                />
+                              </div>
+                            </div>
+
+                            {/* Lista de seguimientos */}
+                            <div className="mt-3 space-y-2">
+                              {proposalFollowUps.length === 0 ? (
+                                <p className="text-xs text-gray-500 text-center py-4">
+                                  No hay seguimientos registrados
+                                </p>
+                              ) : (
+                                proposalFollowUps.map((followUp) => (
+                                  <div
+                                    key={followUp.id}
+                                    className="rounded border p-2 space-y-1 text-xs"
+                                  >
+                                    <div className="flex items-center justify-between">
+                                      <Badge variant="outline" className="text-xs">
+                                        {FOLLOWUP_TYPES.find((t) => t.value === followUp.type)?.label || followUp.type}
+                                      </Badge>
+                                      <span className="text-gray-500">
+                                        {new Date(followUp.date).toLocaleDateString("es-MX")}
+                                      </span>
+                                    </div>
+                                    {followUp.notes && (
+                                      <p className="text-gray-700 dark:text-gray-300">{followUp.notes}</p>
+                                    )}
+                                  </div>
+                                ))
+                              )}
+                            </div>
+                          </div>
+                        </div>
+                      }
                       actionButtons={
                         <div className="flex justify-end gap-2">
                           <Button
