@@ -39,6 +39,7 @@ export default function ClientsPage() {
   const [formData, setFormData] = useState({
     name: "",
     company: "",
+    razonSocial: "",
     rfc: "",
     email: "",
     phone: "",
@@ -94,6 +95,7 @@ export default function ClientsPage() {
     setFormData({
       name: client.name,
       company: client.company,
+      razonSocial: client.razonSocial || "",
       rfc: client.rfc || "",
       email: client.email || "",
       phone: client.phone || "",
@@ -159,6 +161,7 @@ export default function ClientsPage() {
     setFormData({
       name: "",
       company: "",
+      razonSocial: "",
       rfc: "",
       email: "",
       phone: "",
@@ -219,6 +222,18 @@ export default function ClientsPage() {
                   onChange={(e) => setFormData(prev => ({ ...prev, company: e.target.value }))}
                   placeholder="Acme Corp"
                 />
+              </div>
+
+              <div>
+                <Label>Razón Social</Label>
+                <Input
+                  value={formData.razonSocial}
+                  onChange={(e) => setFormData(prev => ({ ...prev, razonSocial: e.target.value }))}
+                  placeholder="ACME CORP SA DE CV"
+                />
+                <p className="text-xs text-muted-foreground mt-1">
+                  Razón social legal (si es diferente al nombre comercial)
+                </p>
               </div>
 
               <div>

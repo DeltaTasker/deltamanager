@@ -10,6 +10,7 @@ export type CreateClientInput = {
   companyId: string;
   name: string;
   company: string;
+  razonSocial?: string;
   rfc?: string;
   email?: string;
   phone?: string;
@@ -24,6 +25,7 @@ export type UpdateClientInput = {
   id: string;
   name?: string;
   company?: string;
+  razonSocial?: string;
   rfc?: string;
   email?: string;
   phone?: string;

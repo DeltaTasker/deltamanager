@@ -321,14 +321,15 @@ model AuditLog {
 }
 
 model Client {
-  id        String  @id @default(cuid())
-  companyId String
-  name      String
-  company   String
-  rfc       String?
-  email     String?
-  phone     String?
-  address   String?
+  id           String  @id @default(cuid())
+  companyId    String
+  name         String // Nombre del contacto o representante legal
+  company      String // Nombre comercial de la empresa
+  razonSocial  String? // Razón social legal (para facturación)
+  rfc          String?
+  email        String?
+  phone        String?
+  address      String?
 
   // Campos fiscales SAT
   regimenFiscal String? // Régimen Fiscal SAT (ej: "601")

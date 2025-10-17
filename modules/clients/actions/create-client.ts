@@ -7,6 +7,7 @@ export type CreateClientInput = {
   companyId: string;
   name: string;
   company: string;
+  razonSocial?: string;
   rfc?: string;
   email?: string;
   phone?: string;
