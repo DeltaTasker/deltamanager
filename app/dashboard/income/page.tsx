@@ -704,79 +704,85 @@ export default function IncomePage() {
       {/* Filters */}
       <Card>
         <CardContent className="pt-6">
-          <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
-            <div>
-              <Label>Buscar</Label>
-              <div className="relative">
-                <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
-                <Input
-                  placeholder="Cliente, concepto..."
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  className="pl-8"
-                />
+          <div className="space-y-4">
+            {/* Primera fila: Filtros generales */}
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+              <div>
+                <Label>Buscar</Label>
+                <div className="relative">
+                  <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
+                  <Input
+                    placeholder="Cliente, concepto..."
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                    className="pl-8"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <Label>Estado</Label>
+                <Select value={filterStatus} onValueChange={setFilterStatus}>
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">Todos</SelectItem>
+                    <SelectItem value="pending">Pendiente</SelectItem>
+                    <SelectItem value="received">Recibido</SelectItem>
+                    <SelectItem value="cancelled">Cancelado</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div>
+                <Label>Pago</Label>
+                <Select value={filterPaymentStatus} onValueChange={setFilterPaymentStatus}>
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">Todos</SelectItem>
+                    <SelectItem value="pending">Pendiente</SelectItem>
+                    <SelectItem value="paid">Pagado</SelectItem>
+                    <SelectItem value="debt">Deuda</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div>
+                <Label>Cuenta</Label>
+                <Select value={filterBankAccount} onValueChange={setFilterBankAccount}>
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">Todas</SelectItem>
+                    {bankAccounts.map(account => (
+                      <SelectItem key={account.id} value={account.id}>
+                        {account.name} {account.last4 ? `****${account.last4}` : ""}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
             </div>
 
-            <div>
-              <Label>Estado</Label>
-              <Select value={filterStatus} onValueChange={setFilterStatus}>
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">Todos</SelectItem>
-                  <SelectItem value="pending">Pendiente</SelectItem>
-                  <SelectItem value="received">Recibido</SelectItem>
-                  <SelectItem value="cancelled">Cancelado</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-
-            <div>
-              <Label>Pago</Label>
-              <Select value={filterPaymentStatus} onValueChange={setFilterPaymentStatus}>
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">Todos</SelectItem>
-                  <SelectItem value="pending">Pendiente</SelectItem>
-                  <SelectItem value="paid">Pagado</SelectItem>
-                  <SelectItem value="debt">Deuda</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-
-            <div>
-              <Label>Cuenta</Label>
-              <Select value={filterBankAccount} onValueChange={setFilterBankAccount}>
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">Todas</SelectItem>
-                  {bankAccounts.map(account => (
-                    <SelectItem key={account.id} value={account.id}>
-                      {account.name} {account.last4 ? `****${account.last4}` : ""}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-
-            <div>
-              <Label>Período</Label>
-              <PeriodFilter
-                value={period}
-                onChange={setPeriod}
-                customStartDate={customStartDate}
-                customEndDate={customEndDate}
-                onCustomDateChange={(start, end) => {
-                  setCustomStartDate(start);
-                  setCustomEndDate(end);
-                }}
-              />
+            {/* Segunda fila: Período (destacado) */}
+            <div className="border-t pt-4">
+              <Label className="text-base font-semibold">Período de Tiempo</Label>
+              <div className="mt-2">
+                <PeriodFilter
+                  value={period}
+                  onChange={setPeriod}
+                  customStartDate={customStartDate}
+                  customEndDate={customEndDate}
+                  onCustomDateChange={(start, end) => {
+                    setCustomStartDate(start);
+                    setCustomEndDate(end);
+                  }}
+                />
+              </div>
             </div>
           </div>
         </CardContent>
